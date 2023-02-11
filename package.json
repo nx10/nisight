@@ -19,6 +19,21 @@
         "command": "nisight.helloWorld",
         "title": "Hello World"
       }
+    ],
+    "customEditors": [
+      {
+        "viewType": "nisight.voxelviewer",
+        "displayName": "Voxel Viewer",
+        "selector": [
+          {
+            "filenamePattern": "*.nii.gz"
+          },
+          {
+            "filenamePattern": "*.nii"
+          }
+        ],
+        "priority": "default"
+      }
     ]
   },
   "scripts": {
