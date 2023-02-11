@@ -7,19 +7,25 @@ class VoxelDocument implements vscode.CustomDocument {
         this.uri = uri;
     }
 
+    viewImage(webviewPanel: vscode.WebviewPanel): void {
+        // load html here
+        webviewPanel.webview.html = `<h1>${this.uri}</h1>`
+    }
+
     dispose(): void {
-        throw new Error('Method not implemented.');
+        console.log("dispose doc: " + this.uri.toString());
     }
     
 }
 
-export class VoxelViewer implements vscode.CustomReadonlyEditorProvider {
-    openCustomDocument(uri: vscode.Uri, openContext: vscode.CustomDocumentOpenContext, token: vscode.CancellationToken): vscode.CustomDocument | Thenable<vscode.CustomDocument> {
+export class VoxelViewer implements vscode.CustomReadonlyEditorProvider<VoxelDocument> {
+    openCustomDocument(uri: vscode.Uri, openContext: vscode.CustomDocumentOpenContext, token: vscode.CancellationToken): VoxelDocument | Thenable<VoxelDocument> {
         console.log(uri);
         return new VoxelDocument(uri);
     }
-    resolveCustomEditor(document: vscode.CustomDocument, webviewPanel: vscode.WebviewPanel, token: vscode.CancellationToken): void | Thenable<void> {
+    resolveCustomEditor(document: VoxelDocument, webviewPanel: vscode.WebviewPanel, token: vscode.CancellationToken): void | Thenable<void> {
         console.log("resolve");
+        document.viewImage(webviewPanel);
     }
     
 }
