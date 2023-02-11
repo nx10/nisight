@@ -1,4 +1,5 @@
-import * as vscode from 'vscode'
+import * as vscode from 'vscode';
+import * as child from 'child_process';
 
 class VoxelDocument implements vscode.CustomDocument {
     uri: vscode.Uri;
@@ -8,8 +9,27 @@ class VoxelDocument implements vscode.CustomDocument {
     }
 
     viewImage(webviewPanel: vscode.WebviewPanel): void {
-        // load html here
-        webviewPanel.webview.html = `<h1>${this.uri}</h1>`
+
+        webviewPanel.webview.html = `Loading preview...`;
+        
+		const pythonProcess = child.spawn('python', [__dirname + '\\..\\src\\python\\nisight.py', "--type", "img", "--file", this.uri.fsPath]);
+
+		pythonProcess.stdout.on('data', (data) => {
+            try {
+                const obj = JSON.parse(data);
+                webviewPanel.webview.html = obj['html'];
+            } catch (error) {
+                console.log(error);
+            }
+		});
+
+		pythonProcess.stderr.on('data', (data) => {
+		    console.error(`Error from Python script: ${data}`);
+		});
+
+		pythonProcess.on('close', (code) => {
+		    console.log(`Python script exited with code ${code}`);
+		});
     }
 
     dispose(): void {
