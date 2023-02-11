@@ -1,6 +1,8 @@
 import * as vscode from 'vscode';
 import * as child from 'child_process';
 
+const PYTHON_INTERPRETER = 'python';
+
 class VoxelDocument implements vscode.CustomDocument {
     uri: vscode.Uri;
 
@@ -12,15 +14,12 @@ class VoxelDocument implements vscode.CustomDocument {
 
         webviewPanel.webview.html = `Loading preview...`;
         
-		const pythonProcess = child.spawn('python', [__dirname + '\\..\\src\\python\\nisight.py', "--type", "img", "--file", this.uri.fsPath]);
+		const pythonProcess = child.spawn(PYTHON_INTERPRETER, [__dirname + '/../src/python/nisight.py', "--type", "img", "--file", this.uri.fsPath]);
+
+        let buffer_out = '';
 
 		pythonProcess.stdout.on('data', (data) => {
-            try {
-                const obj = JSON.parse(data);
-                webviewPanel.webview.html = obj['html'];
-            } catch (error) {
-                console.log(error);
-            }
+            buffer_out += data;
 		});
 
 		pythonProcess.stderr.on('data', (data) => {
@@ -29,6 +28,13 @@ class VoxelDocument implements vscode.CustomDocument {
 
 		pythonProcess.on('close', (code) => {
 		    console.log(`Python script exited with code ${code}`);
+
+            try {
+                const obj = JSON.parse(buffer_out);
+                webviewPanel.webview.html = obj['html'];
+            } catch (error) {
+                console.log(error);
+            }
 		});
     }
 
@@ -45,6 +51,9 @@ export class VoxelViewer implements vscode.CustomReadonlyEditorProvider<VoxelDoc
     }
     resolveCustomEditor(document: VoxelDocument, webviewPanel: vscode.WebviewPanel, token: vscode.CancellationToken): void | Thenable<void> {
         console.log("resolve");
+        webviewPanel.webview.options = {
+			enableScripts: true,
+		};
         document.viewImage(webviewPanel);
     }
     
