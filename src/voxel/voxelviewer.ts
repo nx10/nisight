@@ -12,34 +12,39 @@ class VoxelDocument implements vscode.CustomDocument {
 
     viewImage(webviewPanel: vscode.WebviewPanel): void {
 
-        webviewPanel.webview.html = `Loading preview...`;
+        webviewPanel.webview.html = 'Loading preview...';
         
-		const pythonProcess = child.spawn(PYTHON_INTERPRETER, [__dirname + '/../src/python/nisight.py', "--type", "img", "--file", this.uri.fsPath]);
+		const pythonProcess = child.spawn(PYTHON_INTERPRETER, [__dirname + '/../src/python/nisight.py', '--type', 'img', '--file', this.uri.fsPath]);
 
-        let buffer_out = '';
+        let bufferOut = '';
 
 		pythonProcess.stdout.on('data', (data) => {
-            buffer_out += data;
-		});
-
-		pythonProcess.stderr.on('data', (data) => {
-		    console.error(`Error from Python script: ${data}`);
+            bufferOut += data;
 		});
 
 		pythonProcess.on('close', (code) => {
-		    console.log(`Python script exited with code ${code}`);
-
+            let obj;
             try {
-                const obj = JSON.parse(buffer_out);
-                webviewPanel.webview.html = obj['html'];
+                obj = JSON.parse(bufferOut);
             } catch (error) {
-                console.log(error);
+                console.error(error);
+                return;
+            }
+
+            if (obj['status'] === 'OK') {
+                webviewPanel.webview.html = obj['content'];
+            }
+            else if (obj['status'] === 'ERROR') {
+                console.error(obj['content']);
+            }
+            else {
+                console.error('Unknown status');
             }
 		});
     }
 
     dispose(): void {
-        console.log("dispose doc: " + this.uri.toString());
+        console.log('dispose doc: ' + this.uri.toString());
     }
     
 }
@@ -50,7 +55,7 @@ export class VoxelViewer implements vscode.CustomReadonlyEditorProvider<VoxelDoc
         return new VoxelDocument(uri);
     }
     resolveCustomEditor(document: VoxelDocument, webviewPanel: vscode.WebviewPanel, token: vscode.CancellationToken): void | Thenable<void> {
-        console.log("resolve");
+        console.log('resolve');
         webviewPanel.webview.options = {
 			enableScripts: true,
 		};

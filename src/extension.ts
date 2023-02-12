@@ -22,9 +22,8 @@ export function activate(context: vscode.ExtensionContext) {
 
 	context.subscriptions.push(disposable);
 
-
-	const voxel_disposable = vscode.window.registerCustomEditorProvider('nisight.voxelviewer', new VoxelViewer());
-	context.subscriptions.push(voxel_disposable);
+	const voxelDisposable = vscode.window.registerCustomEditorProvider('nisight.voxelviewer', new VoxelViewer());
+	context.subscriptions.push(voxelDisposable);
 }
 
 // This method is called when your extension is deactivated
