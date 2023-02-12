@@ -2,12 +2,15 @@ import * as vscode from 'vscode';
 import * as child from 'child_process';
 
 const PYTHON_INTERPRETER = 'python';
+const SHOW_OUTPUT_CONSOLE_ACTION = 'Show output console';
 
 class VoxelDocument implements vscode.CustomDocument {
     uri: vscode.Uri;
+    outputConsole: vscode.OutputChannel;
 
     constructor(uri: vscode.Uri) {
         this.uri = uri;
+        this.outputConsole = vscode.window.createOutputChannel("NiSight");
     }
 
     viewImage(webviewPanel: vscode.WebviewPanel): void {
@@ -31,11 +34,16 @@ class VoxelDocument implements vscode.CustomDocument {
                 return;
             }
 
-            if (obj['status'] === 'OK') {
+            if (obj.status === 'OK') {
                 webviewPanel.webview.html = obj['content'];
             }
-            else if (obj['status'] === 'ERROR') {
-                console.error(obj['content']);
+            else if (obj.status === 'ERROR') {
+                this.outputConsole.append(obj.content);
+                vscode.window.showErrorMessage(`Error ${obj.content.exception} occured.`, SHOW_OUTPUT_CONSOLE_ACTION).then(choice => {
+                    if (choice === SHOW_OUTPUT_CONSOLE_ACTION) {
+                        this.outputConsole.show();
+                    }
+                });
             }
             else {
                 console.error('Unknown status');
@@ -46,7 +54,6 @@ class VoxelDocument implements vscode.CustomDocument {
     dispose(): void {
         console.log('dispose doc: ' + this.uri.toString());
     }
-    
 }
 
 export class VoxelViewer implements vscode.CustomReadonlyEditorProvider<VoxelDocument> {
@@ -61,5 +68,4 @@ export class VoxelViewer implements vscode.CustomReadonlyEditorProvider<VoxelDoc
 		};
         document.viewImage(webviewPanel);
     }
-    
 }
