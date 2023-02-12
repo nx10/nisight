@@ -34,7 +34,17 @@
         ],
         "priority": "default"
       }
-    ]
+    ],
+    "configuration": {
+      "title": "NiSight",
+      "properties": {
+        "nisight.pythonInterpreter": {
+          "type": "string",
+          "default": "python",
+          "description": "Python interpreter location (nilearn package required)"
+        }
+      }
+    }
   },
   "scripts": {
     "vscode:prepublish": "npm run package",

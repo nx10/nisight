@@ -1,7 +1,6 @@
 import * as vscode from 'vscode';
 import * as child from 'child_process';
 
-const PYTHON_INTERPRETER = 'python';
 const SHOW_OUTPUT_CONSOLE_ACTION = 'Show output console';
 
 class VoxelDocument implements vscode.CustomDocument {
@@ -17,7 +16,8 @@ class VoxelDocument implements vscode.CustomDocument {
 
         webviewPanel.webview.html = 'Loading preview...';
         
-		const pythonProcess = child.spawn(PYTHON_INTERPRETER, [__dirname + '/../src/python/nisight.py', '--type', 'img', '--file', this.uri.fsPath]);
+        const pythonInterpreter = vscode.workspace.getConfiguration('NiSight').get('nisight.pythonInterpreter', 'python');
+		const pythonProcess = child.spawn(pythonInterpreter, [__dirname + '/../src/python/nisight.py', '--type', 'img', '--file', this.uri.fsPath]);
 
         let bufferOut = '';
 
@@ -39,7 +39,7 @@ class VoxelDocument implements vscode.CustomDocument {
             }
             else if (obj.status === 'ERROR') {
                 this.outputConsole.append(obj.content);
-                vscode.window.showErrorMessage(`Error ${obj.content.exception} occured.`, SHOW_OUTPUT_CONSOLE_ACTION).then(choice => {
+                vscode.window.showErrorMessage(`NiSight: Error ${obj.content.exception} occured.`, SHOW_OUTPUT_CONSOLE_ACTION).then(choice => {
                     if (choice === SHOW_OUTPUT_CONSOLE_ACTION) {
                         this.outputConsole.show();
                     }
