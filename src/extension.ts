@@ -2,6 +2,7 @@
 // Import the module and reference it with the alias vscode in your code below
 import * as vscode from 'vscode';
 import { VoxelViewer } from './voxel/voxelviewer';
+import { SurfaceViewer } from './surface/surfaceviewer';
 
 // This method is called when your extension is activated
 // Your extension is activated the very first time the command is executed
@@ -24,6 +25,9 @@ export function activate(context: vscode.ExtensionContext) {
 
 	const voxelDisposable = vscode.window.registerCustomEditorProvider('nisight.voxelviewer', new VoxelViewer());
 	context.subscriptions.push(voxelDisposable);
+
+	const surfaceDisposable = vscode.window.registerCustomEditorProvider('nisight.surfaceviewer', new SurfaceViewer());
+	context.subscriptions.push(surfaceDisposable);
 }
 
 // This method is called when your extension is deactivated

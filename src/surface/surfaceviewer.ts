@@ -3,7 +3,7 @@ import * as child from 'child_process';
 
 const SHOW_OUTPUT_CONSOLE_ACTION = 'Show output console';
 
-class VoxelDocument implements vscode.CustomDocument {
+class SurfaceDocument implements vscode.CustomDocument {
     uri: vscode.Uri;
     outputConsole: vscode.OutputChannel;
 
@@ -15,10 +15,10 @@ class VoxelDocument implements vscode.CustomDocument {
     viewImage(webviewPanel: vscode.WebviewPanel): void {
 
         webviewPanel.webview.html = 'Loading preview...';
-
+        
         const config = vscode.workspace.getConfiguration('nisight');
         const pythonInterpreter = config.get<string>('pythonInterpreter', 'python');
-		const pythonProcess = child.spawn(pythonInterpreter, [__dirname + '/../src/python/nisight.py', '--type', 'img', '--file', this.uri.fsPath]);
+		const pythonProcess = child.spawn(pythonInterpreter, [__dirname + '/../src/python/nisight.py', '--type', 'surf', '--file', this.uri.fsPath]);
 
         let bufferOut = '';
 
@@ -57,12 +57,12 @@ class VoxelDocument implements vscode.CustomDocument {
     }
 }
 
-export class VoxelViewer implements vscode.CustomReadonlyEditorProvider<VoxelDocument> {
-    openCustomDocument(uri: vscode.Uri, openContext: vscode.CustomDocumentOpenContext, token: vscode.CancellationToken): VoxelDocument | Thenable<VoxelDocument> {
+export class SurfaceViewer implements vscode.CustomReadonlyEditorProvider<SurfaceDocument> {
+    openCustomDocument(uri: vscode.Uri, openContext: vscode.CustomDocumentOpenContext, token: vscode.CancellationToken): SurfaceDocument | Thenable<SurfaceDocument> {
         console.log(uri);
-        return new VoxelDocument(uri);
+        return new SurfaceDocument(uri);
     }
-    resolveCustomEditor(document: VoxelDocument, webviewPanel: vscode.WebviewPanel, token: vscode.CancellationToken): void | Thenable<void> {
+    resolveCustomEditor(document: SurfaceDocument, webviewPanel: vscode.WebviewPanel, token: vscode.CancellationToken): void | Thenable<void> {
         console.log('resolve');
         webviewPanel.webview.options = {
 			enableScripts: true,
