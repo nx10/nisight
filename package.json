@@ -37,6 +37,21 @@
         "selector": [
           {
             "filenamePattern": "*.gii"
+          },
+          {
+            "filenamePattern": "*.orig"
+          },
+          {
+            "filenamePattern": "*.pial"
+          },
+          {
+            "filenamePattern": "*.sphere"
+          },
+          {
+            "filenamePattern": "*.white"
+          },
+          {
+            "filenamePattern": "*.inflated"
           }
         ],
         "priority": "default"
