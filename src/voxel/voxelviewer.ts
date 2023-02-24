@@ -51,9 +51,13 @@ class VoxelDocument implements vscode.CustomDocument {
 }
 
 export class VoxelViewer implements vscode.CustomReadonlyEditorProvider<VoxelDocument> {
+    private document?: VoxelDocument;
+    private webviewPanel?: vscode.WebviewPanel;
+
     openCustomDocument(uri: vscode.Uri, openContext: vscode.CustomDocumentOpenContext, token: vscode.CancellationToken): VoxelDocument | Thenable<VoxelDocument> {
         console.log(uri);
-        return new VoxelDocument(uri);
+        this.document = new VoxelDocument(uri);
+        return this.document;
     }
     resolveCustomEditor(document: VoxelDocument, webviewPanel: vscode.WebviewPanel, token: vscode.CancellationToken): void | Thenable<void> {
         console.log('resolve');
@@ -61,5 +65,17 @@ export class VoxelViewer implements vscode.CustomReadonlyEditorProvider<VoxelDoc
             enableScripts: true,
         };
         document.viewImage(webviewPanel);
+        this.webviewPanel = webviewPanel;
+    }
+
+    register(context: vscode.ExtensionContext) {
+        const voxelDisposable = vscode.window.registerCustomEditorProvider('nisight.voxelviewer', this);
+        context.subscriptions.push(voxelDisposable);
+
+        context.subscriptions.push(
+            vscode.commands.registerCommand('nisight.voxelviewer.refresh', () => {
+                if (this.webviewPanel) { this.document?.viewImage(this.webviewPanel); }
+            })
+        );
     }
 }

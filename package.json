@@ -13,8 +13,10 @@
   "contributes": {
     "commands": [
       {
-        "command": "nisight.helloWorld",
-        "title": "Hello World"
+        "command": "nisight.voxelviewer.refresh",
+        "category": "NiSight",
+        "title": "Refresh Voxel Viewer",
+        "icon": "$(extensions-refresh)"
       }
     ],
     "customEditors": [
@@ -57,6 +59,15 @@
         "priority": "default"
       }
     ],
+    "menus": {
+      "editor/title": [
+        {
+          "when": "activeCustomEditorId == nisight.voxelviewer",
+          "command": "nisight.voxelviewer.refresh",
+          "group": "navigation"
+        }
+      ]
+    },
     "configuration": {
       "title": "NiSight",
       "properties": {
