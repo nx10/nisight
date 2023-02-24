@@ -1,6 +1,9 @@
 import * as vscode from 'vscode';
 import * as child from 'child_process';
 
+import { process_capture } from '../utils/process_capture'
+import { parse_python_message } from '../python_message'
+
 const SHOW_OUTPUT_CONSOLE_ACTION = 'Show output console';
 
 class VoxelDocument implements vscode.CustomDocument {
@@ -12,44 +15,34 @@ class VoxelDocument implements vscode.CustomDocument {
         this.outputConsole = vscode.window.createOutputChannel("NiSight");
     }
 
-    viewImage(webviewPanel: vscode.WebviewPanel): void {
+    async viewImage(webviewPanel: vscode.WebviewPanel): Promise<void> {
 
         webviewPanel.webview.html = 'Loading preview...';
 
         const config = vscode.workspace.getConfiguration('nisight');
         const pythonInterpreter = config.get<string>('pythonInterpreter', 'python');
-		const pythonProcess = child.spawn(pythonInterpreter, [__dirname + '/../src/python/nisight.py', '--type', 'img', '--file', this.uri.fsPath]);
 
-        let bufferOut = '';
+        const processOutput = await process_capture(pythonInterpreter, [__dirname + '/../src/python/nisight.py', '--type', 'img', '--file', this.uri.fsPath]);
 
-		pythonProcess.stdout.on('data', (data) => {
-            bufferOut += data;
-		});
+        let msg;
+        try {
+            msg = parse_python_message(processOutput.message);
+        } catch (error) {
+            console.error(error);
+            return;
+        }
 
-		pythonProcess.on('close', (code) => {
-            let obj;
-            try {
-                obj = JSON.parse(bufferOut);
-            } catch (error) {
-                console.error(error);
-                return;
-            }
-
-            if (obj.status === 'OK') {
-                webviewPanel.webview.html = obj['content'];
-            }
-            else if (obj.status === 'ERROR') {
-                this.outputConsole.append(obj.content);
-                vscode.window.showErrorMessage(`NiSight: Error ${obj.content.exception} occured.`, SHOW_OUTPUT_CONSOLE_ACTION).then(choice => {
-                    if (choice === SHOW_OUTPUT_CONSOLE_ACTION) {
-                        this.outputConsole.show();
-                    }
-                });
-            }
-            else {
-                console.error('Unknown status');
-            }
-		});
+        if (msg.status === 'OK') {
+            webviewPanel.webview.html = msg.content as string;
+        }
+        else {
+            this.outputConsole.append(msg.content.toString());
+            vscode.window.showErrorMessage(`NiSight: Error ${msg.content.exception} occured.`, SHOW_OUTPUT_CONSOLE_ACTION).then(choice => {
+                if (choice === SHOW_OUTPUT_CONSOLE_ACTION) {
+                    this.outputConsole.show();
+                }
+            });
+        }
     }
 
     dispose(): void {
@@ -65,8 +58,8 @@ export class VoxelViewer implements vscode.CustomReadonlyEditorProvider<VoxelDoc
     resolveCustomEditor(document: VoxelDocument, webviewPanel: vscode.WebviewPanel, token: vscode.CancellationToken): void | Thenable<void> {
         console.log('resolve');
         webviewPanel.webview.options = {
-			enableScripts: true,
-		};
+            enableScripts: true,
+        };
         document.viewImage(webviewPanel);
     }
 }
