@@ -14,7 +14,6 @@ class VoxelDocument implements vscode.CustomDocument {
     }
 
     async viewImage(webviewPanel: vscode.WebviewPanel): Promise<void> {
-
         const config = vscode.workspace.getConfiguration('nisight');
         const pythonInterpreter = config.get<string>('pythonInterpreter', 'python');
 
@@ -65,7 +64,10 @@ export class VoxelViewer implements vscode.CustomReadonlyEditorProvider<VoxelDoc
 
         context.subscriptions.push(
             vscode.commands.registerCommand('nisight.voxelviewer.refresh', () => {
-                if (this.webviewPanel) { this.document?.viewImage(this.webviewPanel); }
+                if (this.webviewPanel) { 
+                    this.webviewPanel.webview.html = 'Refreshing...';
+                    this.document?.viewImage(this.webviewPanel);
+                }
             })
         );
     }
