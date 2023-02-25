@@ -3,7 +3,7 @@ import json
 import pathlib as pl
 import sys
 from enum import Enum
-from typing import Union
+from typing import Any, Union
 
 
 class PlotType(Enum):
@@ -11,7 +11,7 @@ class PlotType(Enum):
     SURF = "surf"
     
     
-def print_as_json(data: Union[str, Exception]) -> None:
+def print_as_json(data: Any) -> None:
     if isinstance(data, Exception):
         exception: Exception = data
         json_object = json.dumps({
@@ -21,14 +21,14 @@ def print_as_json(data: Union[str, Exception]) -> None:
                 "message": str(exception)
             }
         })
-    elif isinstance(data, str):
-        content: str = data
+        
+    try:
         json_object = json.dumps({
             "status": "OK",
-            "content": content
+            "content": data
         })
-    else:
-        raise ValueError(f"Invalid data type {type(data)}. Valid choices are str and Exception.")
+    except TypeError:
+        raise TypeError(f"Data type {type(data)} is not json serializable.")
 
     print(json_object)
 
@@ -51,24 +51,43 @@ def view_surf(file: pl.Path) -> None:
     html = html_viewer.html
     
     print_as_json(html)
+    
+    
+def get_num_vertices(file: pl.Path) -> int:
+    if not file.exists():
+        raise IOError(f"File {file} does not exist.")
+    
+    img = nibabel.load(file)
+    vertices = img.darrays[0]
+    num_vertices = vertices.dims[0]
+    
+    print_as_json(num_vertices)
 
 
 def main() -> None:
     parser = argparse.ArgumentParser()
-    parser.add_argument("--type", required=True, choices=list(PlotType), type=PlotType)
-    parser.add_argument("--file", required=True, type=pl.Path)
+    subparsers = parser.add_subparsers(dest='command')
+    view_parser = subparsers.add_parser('view')
+    view_parser.add_argument("--file", required=True, type=pl.Path)
+    view_parser.add_argument("--type", required=True, choices=list(PlotType), type=PlotType)
+    vertices_parser = subparsers.add_parser('vertices')
+    vertices_parser.add_argument("--file", required=True, type=pl.Path)
     args = parser.parse_args()
     
-    if args.type == PlotType.IMG:
-        view_img(args.file)
-    elif args.type == PlotType.SURF:
-        view_surf(args.file)
-    else:
-        raise ValueError(f"Unknown plot type {args.type}. Valid choices are {PlotType}.")
+    if args.command == 'view':
+        if args.type == PlotType.IMG:
+            view_img(args.file)
+        elif args.type == PlotType.SURF:
+            view_surf(args.file)
+        else:
+            raise ValueError(f"Unknown plot type {args.type}. Valid choices are {PlotType}.")
+    elif args.command == 'vertices':
+        get_num_vertices(file=args.file)
 
 
 if __name__ == "__main__":
     try:
+        import nibabel
         from nilearn import plotting
         main()
     except Exception as error:

@@ -17,7 +17,7 @@ class VoxelDocument implements vscode.CustomDocument {
         const config = vscode.workspace.getConfiguration('nisight');
         const pythonInterpreter = config.get<string>('pythonInterpreter', 'python');
 
-        const processOutput = await process_capture(pythonInterpreter, [__dirname + '/../src/python/nisight.py', '--type', 'img', '--file', this.uri.fsPath]);
+        const processOutput = await process_capture(pythonInterpreter, [__dirname + '/../src/python/nisight.py', 'view', '--type', 'img', '--file', this.uri.fsPath]);
 
         let msg;
         try {
