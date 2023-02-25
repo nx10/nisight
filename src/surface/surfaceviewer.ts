@@ -60,4 +60,10 @@ export class SurfaceViewer implements vscode.CustomReadonlyEditorProvider<Surfac
         };
         document.viewImage(webviewPanel);
     }
+
+    register(context: vscode.ExtensionContext) {
+        context.subscriptions.push(
+            vscode.window.registerCustomEditorProvider('nisight.surfaceviewer', this)
+        );
+    }
 }
