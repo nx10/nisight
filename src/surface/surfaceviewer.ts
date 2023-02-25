@@ -14,8 +14,6 @@ class SurfaceDocument implements vscode.CustomDocument {
 
     async viewImage(webviewPanel: vscode.WebviewPanel): Promise<void> {
 
-        webviewPanel.webview.html = 'Loading preview...';
-
         const config = vscode.workspace.getConfiguration('nisight');
         const pythonInterpreter = config.get<string>('pythonInterpreter', 'python');
 
@@ -47,12 +45,12 @@ export class SurfaceViewer implements vscode.CustomReadonlyEditorProvider<Surfac
         console.log(uri);
         return new SurfaceDocument(uri);
     }
-    resolveCustomEditor(document: SurfaceDocument, webviewPanel: vscode.WebviewPanel, token: vscode.CancellationToken): void | Thenable<void> {
+    async resolveCustomEditor(document: SurfaceDocument, webviewPanel: vscode.WebviewPanel, token: vscode.CancellationToken): Promise<void> {
         console.log('resolve');
         webviewPanel.webview.options = {
             enableScripts: true,
         };
-        document.viewImage(webviewPanel);
+        await document.viewImage(webviewPanel);
     }
 
     register(context: vscode.ExtensionContext) {

@@ -15,8 +15,6 @@ class VoxelDocument implements vscode.CustomDocument {
 
     async viewImage(webviewPanel: vscode.WebviewPanel): Promise<void> {
 
-        webviewPanel.webview.html = 'Loading preview...';
-
         const config = vscode.workspace.getConfiguration('nisight');
         const pythonInterpreter = config.get<string>('pythonInterpreter', 'python');
 
@@ -52,12 +50,12 @@ export class VoxelViewer implements vscode.CustomReadonlyEditorProvider<VoxelDoc
         this.document = new VoxelDocument(uri);
         return this.document;
     }
-    resolveCustomEditor(document: VoxelDocument, webviewPanel: vscode.WebviewPanel, token: vscode.CancellationToken): void | Thenable<void> {
+    async resolveCustomEditor(document: VoxelDocument, webviewPanel: vscode.WebviewPanel, token: vscode.CancellationToken): Promise<void> {
         console.log('resolve');
         webviewPanel.webview.options = {
             enableScripts: true,
         };
-        document.viewImage(webviewPanel);
+        await document.viewImage(webviewPanel);
         this.webviewPanel = webviewPanel;
     }
 
