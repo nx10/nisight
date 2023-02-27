@@ -99,12 +99,36 @@ class SurfaceDocument implements vscode.CustomDocument {
         this.uri = uri;
     }
 
+    async getNumVertices(file: string): Promise<number> {
+        const config = vscode.workspace.getConfiguration('nisight');
+        const pythonInterpreter = config.get<string>('pythonInterpreter', 'python');
+
+        const processOutput = await process_capture(pythonInterpreter, [__dirname + '/../src/python/nisight.py', 'vertices', '--file', file]);
+
+        let msg;
+        try {
+            msg = parse_python_message(processOutput.message);
+        } catch (error) {
+            console.error(error);
+            return -1;
+        }
+
+        if (msg.status === 'OK') {
+            return parseInt(msg.content);
+        }
+        else if (msg.status === 'ERROR') {
+            logPythonException(msg.content);
+        }
+        
+        return -1;
+    }
+    
     async viewImage(webviewPanel: vscode.WebviewPanel, extensionUri: Uri): Promise<void> {
 
         const config = vscode.workspace.getConfiguration('nisight');
         const pythonInterpreter = config.get<string>('pythonInterpreter', 'python');
 
-        const processOutput = await process_capture(pythonInterpreter, [__dirname + '/../src/python/nisight.py', '--type', 'surf', '--file', this.uri.fsPath]);
+        const processOutput = await process_capture(pythonInterpreter, [__dirname + '/../src/python/nisight.py', 'view', '--type', 'surf', '--file', this.uri.fsPath]);
 
         let msg;
         try {
