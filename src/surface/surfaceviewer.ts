@@ -62,8 +62,8 @@ function build_html(webview: Webview, extensionUri: Uri, iFrameSource?: string) 
         <div style="display:flex;flex-direction:row">
     
           <div style="display:flex;flex-direction:column; margin: 1em">
-            <label for="my-dropdown">Mesh:</label>
-            <vscode-dropdown id="my-dropdown">
+            <label for="mesh-dropdown">Mesh:</label>
+            <vscode-dropdown id="mesh-dropdown">
               <vscode-option>path/to/mesh1.blub</vscode-option>
               <vscode-option>path/to/mesh2.blub</vscode-option>
               <vscode-option>path/to/mesh3.blub</vscode-option>
@@ -72,8 +72,8 @@ function build_html(webview: Webview, extensionUri: Uri, iFrameSource?: string) 
           </div>
     
           <div style="display:flex;flex-direction:column; margin: 1em">
-            <label for="my-dropdown">Map:</label>
-            <vscode-dropdown id="my-dropdown">
+            <label for="map-dropdown">Map:</label>
+            <vscode-dropdown id="map-dropdown">
               <vscode-option>path/to/map1.blub</vscode-option>
               <vscode-option>path/to/map2.blub</vscode-option>
               <vscode-option>path/to/map3.blub</vscode-option>
@@ -119,10 +119,10 @@ class SurfaceDocument implements vscode.CustomDocument {
         else if (msg.status === 'ERROR') {
             logPythonException(msg.content);
         }
-        
+
         return -1;
     }
-    
+
     async viewImage(webviewPanel: vscode.WebviewPanel, extensionUri: Uri): Promise<void> {
 
         const config = vscode.workspace.getConfiguration('nisight');
@@ -139,8 +139,6 @@ class SurfaceDocument implements vscode.CustomDocument {
         }
 
         if (msg.status === 'OK') {
-            console.log(msg.content);
-
             webviewPanel.webview.html = build_html(webviewPanel.webview, extensionUri, msg.content as string);//
         }
         else if (msg.status === 'ERROR') {
@@ -155,6 +153,7 @@ class SurfaceDocument implements vscode.CustomDocument {
 
 export class SurfaceViewer implements vscode.CustomReadonlyEditorProvider<SurfaceDocument> {
     private extensionUri?: Uri;
+    private webviewPanel?: vscode.WebviewPanel;
 
     openCustomDocument(uri: vscode.Uri, openContext: vscode.CustomDocumentOpenContext, token: vscode.CancellationToken): SurfaceDocument | Thenable<SurfaceDocument> {
         console.log(uri);
@@ -166,6 +165,14 @@ export class SurfaceViewer implements vscode.CustomReadonlyEditorProvider<Surfac
             enableScripts: true,
             enableForms: true,
         };
+        this.webviewPanel = webviewPanel;
+
+        webviewPanel.webview.onDidReceiveMessage(
+            message => {
+                console.log(message);
+            }
+        );
+
         if (this.extensionUri)
             await document.viewImage(webviewPanel, this.extensionUri);
     }
