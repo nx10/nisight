@@ -2,36 +2,27 @@ import * as vscode from 'vscode';
 import { process_capture } from '../utils/process_capture';
 import { parse_python_message } from '../python_message';
 import { logPythonException } from '../utils/logging';
+import { quoteattr } from '../utils/string_utils';
+import * as fs from 'fs';
 
 
 const SHOW_OUTPUT_CONSOLE_ACTION = 'Show output console';
 
 import { Uri, Webview } from "vscode";
+import { WebviewBackendMessage, WebviewFrontendMessage } from '../webview_message';
 
-export function getUri(webview: Webview, extensionUri: Uri, pathList: string[]) {
+export function getUri(extensionUri: Uri, pathList: string[]) {
+    return Uri.joinPath(extensionUri, ...pathList);
+}
+
+export function getWebviewUri(webview: Webview, extensionUri: Uri, pathList: string[]) {
     return webview.asWebviewUri(Uri.joinPath(extensionUri, ...pathList));
 }
 
-/** https://stackoverflow.com/questions/7753448/how-do-i-escape-quotes-in-html-attribute-values */
-function quoteattr(s: string, preserveCR?: string) {
-    preserveCR = preserveCR ? '&#13;' : '\n';
-    return ('' + s) /* Forces the conversion to string. */
-        .replace(/&/g, '&amp;') /* This MUST be the 1st replacement. */
-        .replace(/'/g, '&apos;') /* The 4 other predefined entities, required. */
-        .replace(/"/g, '&quot;')
-        .replace(/</g, '&lt;')
-        .replace(/>/g, '&gt;')
-        /*
-        You may add other replacements here for HTML only 
-        (but it's not necessary).
-        Or for XML, only if the named entities are defined in its DTD.
-        */
-        .replace(/\r\n/g, preserveCR) /* Must be before the next replacement. */
-        .replace(/[\r\n]/g, preserveCR);
-}
+function build_html(webview: Webview, extensionUri: Uri) {
+    const webviewUri = getWebviewUri(webview, extensionUri, ["dist", "webview.js"]);
 
-function build_html(webview: Webview, extensionUri: Uri, iFrameSource?: string) {
-    const webviewUri = getUri(webview, extensionUri, ["dist", "webview.js"]);
+    const loadingHtml = quoteattr(fs.readFileSync(getUri(extensionUri, ["src", "html", "loading.html"]).fsPath, 'utf8'));
 
     return /*html*/ `
     <!DOCTYPE html>
@@ -40,7 +31,7 @@ function build_html(webview: Webview, extensionUri: Uri, iFrameSource?: string) 
     <head>
       <meta charset="UTF-8">
       <meta name="viewport" content="width=device-width,initial-scale=1.0">
-      <title>Hello World!</title>
+      <title>Surface</title>
       <style>
         html {
           height: 100%;
@@ -82,7 +73,7 @@ function build_html(webview: Webview, extensionUri: Uri, iFrameSource?: string) 
           </div>
         </div>
     
-        <iframe id="viewer-iframe" srcdoc="${iFrameSource ? quoteattr(iFrameSource) : ''}" style="flex:1"></iframe>
+        <iframe id="viewer-iframe" srcdoc="${loadingHtml}" style="flex:1"></iframe>
       </div>
     
       <script src="${webviewUri}"></script>
@@ -92,18 +83,30 @@ function build_html(webview: Webview, extensionUri: Uri, iFrameSource?: string) 
     `;
 }
 
+interface ViewerState {
+    path_mesh: string; 
+    path_map?: string;
+}
+
 class SurfaceDocument implements vscode.CustomDocument {
     uri: vscode.Uri;
+    extensionUri: vscode.Uri;
+    viewerState: ViewerState;
 
-    constructor(uri: vscode.Uri) {
+    constructor(uri: vscode.Uri, extensionUri: vscode.Uri) {
         this.uri = uri;
+        this.extensionUri = extensionUri;
+        this.viewerState = {
+            path_mesh: uri.fsPath
+        }
     }
 
     async getNumVertices(file: string): Promise<number> {
         const config = vscode.workspace.getConfiguration('nisight');
         const pythonInterpreter = config.get<string>('pythonInterpreter', 'python');
 
-        const processOutput = await process_capture(pythonInterpreter, [__dirname + '/../src/python/nisight.py', 'vertices', '--file', file]);
+        const pyPath = getUri(this.extensionUri, ['src', 'python', 'nisight.py']).fsPath;
+        const processOutput = await process_capture(pythonInterpreter, [pyPath, 'vertices', '--file', file]);
 
         let msg;
         try {
@@ -128,7 +131,21 @@ class SurfaceDocument implements vscode.CustomDocument {
         const config = vscode.workspace.getConfiguration('nisight');
         const pythonInterpreter = config.get<string>('pythonInterpreter', 'python');
 
-        const processOutput = await process_capture(pythonInterpreter, [__dirname + '/../src/python/nisight.py', 'view', '--type', 'surf', '--file', this.uri.fsPath]);
+        const pyPath = getUri(this.extensionUri, ['src', 'python', 'nisight.py']).fsPath;
+        let args = [pyPath, 'view', '--type', 'surf', '--file', this.viewerState.path_mesh];
+
+        if (this.viewerState.path_map) {
+            args.push('--file2', this.viewerState.path_map);
+        }
+
+        webviewPanel.webview.html = build_html(webviewPanel.webview, extensionUri);
+
+        const processOutput = await process_capture(pythonInterpreter, args);
+
+        if (processOutput.code !== 0) {
+            console.error(`Python process had non-zero exit code. Message body: '${processOutput.message}'`);
+            return;
+        }
 
         let msg;
         try {
@@ -139,7 +156,12 @@ class SurfaceDocument implements vscode.CustomDocument {
         }
 
         if (msg.status === 'OK') {
-            webviewPanel.webview.html = build_html(webviewPanel.webview, extensionUri, msg.content as string);//
+            webviewPanel.webview.postMessage({
+                command: 'SET_STATE',
+                iframe_contents: msg.content,
+                select_mesh_entries: [],
+                select_map_entries: []
+            });
         }
         else if (msg.status === 'ERROR') {
             logPythonException(msg.content);
@@ -154,10 +176,11 @@ class SurfaceDocument implements vscode.CustomDocument {
 export class SurfaceViewer implements vscode.CustomReadonlyEditorProvider<SurfaceDocument> {
     private extensionUri?: Uri;
     private webviewPanel?: vscode.WebviewPanel;
+    private document?: SurfaceDocument;
 
     openCustomDocument(uri: vscode.Uri, openContext: vscode.CustomDocumentOpenContext, token: vscode.CancellationToken): SurfaceDocument | Thenable<SurfaceDocument> {
         console.log(uri);
-        return new SurfaceDocument(uri);
+        return new SurfaceDocument(uri, this.extensionUri as Uri);
     }
     async resolveCustomEditor(document: SurfaceDocument, webviewPanel: vscode.WebviewPanel, token: vscode.CancellationToken): Promise<void> {
         console.log('resolve');
@@ -166,10 +189,42 @@ export class SurfaceViewer implements vscode.CustomReadonlyEditorProvider<Surfac
             enableForms: true,
         };
         this.webviewPanel = webviewPanel;
+        this.document = document;
 
         webviewPanel.webview.onDidReceiveMessage(
-            message => {
-                console.log(message);
+            (message: WebviewFrontendMessage) => {
+
+                switch (message.command) {
+                    case 'CHOOSE_MESH':
+                        vscode.window.showOpenDialog().then((value?: vscode.Uri[]) => {
+                            if (value && value.length > 0) {
+                                if (this.document && this.webviewPanel && this.extensionUri) {
+                                    this.document.viewerState.path_mesh = value[0].path;
+                                    this.document.viewImage(this.webviewPanel, this.extensionUri);
+                                }
+                            }
+                        });
+                        break;
+                    case 'CHOOSE_MAP':
+                        vscode.window.showOpenDialog().then((value?: vscode.Uri[]) => {
+                            if (value && value.length > 0) {
+                                if (this.document && this.webviewPanel && this.extensionUri) {
+                                    this.document.viewerState.path_map = value[0].path;
+                                    this.document.viewImage(this.webviewPanel, this.extensionUri);
+                                }
+                            }
+                        });
+                        break;
+                    case 'SET_MESH':
+                        console.log('Set mesh: ' + message.path);
+                        break;
+                    case 'SET_MAP':
+                        console.log('Set map: ' + message.path);
+                        break;
+
+                    default:
+                        break;
+                }
             }
         );
 

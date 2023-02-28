@@ -23,6 +23,7 @@ import {
     vsCodeTextField,
 } from "@vscode/webview-ui-toolkit";
 import { type WebviewApi } from "vscode-webview";
+import { WebviewFrontendMessage, WebviewBackendMessage } from "./webview_message";
 
 // TODO: we do not need all of these
 
@@ -54,10 +55,24 @@ declare global {
 
 var vscodeApi = acquireVsCodeApi();
 
+function vscPostMessage(message: WebviewFrontendMessage) {
+    return vscodeApi.postMessage(message);
+}
+
 function initWebview() {
 
     window.addEventListener('message', (ev: MessageEvent<any>) => {
-        const message = ev.data;
+        const message: WebviewBackendMessage = ev.data;
+
+        switch (message.command) {
+            case 'SET_STATE':
+                const viewerIFrame = document.getElementById('viewer-iframe') as HTMLIFrameElement;
+                viewerIFrame.srcdoc = message.iframe_contents;
+                break;
+        
+            default:
+                break;
+        }
 
         vscodeApi.postMessage(message);
     });
@@ -67,11 +82,29 @@ function initWebview() {
         const mapDropdown = document.getElementById('map-dropdown') as Dropdown;
 
         meshDropdown.onchange = (ev) => {
-            vscodeApi.postMessage('Mesh changed: ' + meshDropdown.value);
+            if (meshDropdown.value === 'Select file...') {
+                vscPostMessage({
+                    command: 'CHOOSE_MESH'
+                });
+            } else {
+                vscPostMessage({
+                    command: 'SET_MESH',
+                    path: meshDropdown.value
+                });
+            }
         };
 
         mapDropdown.onchange = (ev) => {
-            vscodeApi.postMessage('Map changed: ' + mapDropdown.value);
+            if (mapDropdown.value === 'Select file...') {
+                vscPostMessage({
+                    command: 'CHOOSE_MAP'
+                });
+            } else {
+                vscPostMessage({
+                    command: 'SET_MAP',
+                    path: mapDropdown.value
+                });
+            }
         };
     }
 }

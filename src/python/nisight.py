@@ -3,7 +3,7 @@ import json
 import pathlib as pl
 import sys
 from enum import Enum
-from typing import Any, Union
+from typing import Any, Union, Optional
 
 
 class PlotType(Enum):
@@ -43,11 +43,11 @@ def view_img(file: pl.Path) -> None:
     print_as_json(html)
     
     
-def view_surf(file: pl.Path) -> None:
-    if not file.exists():
-        raise IOError(f"File {file} does not exist.")
+def view_surf(file_mesh: pl.Path, file_map: Optional[pl.Path] = None) -> None:
+    if not file_mesh.exists():
+        raise IOError(f"File {file_mesh} does not exist.")
     
-    html_viewer = plotting.view_surf(file, black_bg=True)
+    html_viewer = plotting.view_surf(file_mesh, file_map, black_bg=True)
     html = html_viewer.html
     
     print_as_json(html)
@@ -69,6 +69,7 @@ def main() -> None:
     subparsers = parser.add_subparsers(dest='command')
     view_parser = subparsers.add_parser('view')
     view_parser.add_argument("--file", required=True, type=pl.Path)
+    view_parser.add_argument("--file2", default=None, type=pl.Path)
     view_parser.add_argument("--type", required=True, choices=list(PlotType), type=PlotType)
     vertices_parser = subparsers.add_parser('vertices')
     vertices_parser.add_argument("--file", required=True, type=pl.Path)
@@ -78,7 +79,7 @@ def main() -> None:
         if args.type == PlotType.IMG:
             view_img(args.file)
         elif args.type == PlotType.SURF:
-            view_surf(args.file)
+            view_surf(args.file, args.file2)
         else:
             raise ValueError(f"Unknown plot type {args.type}. Valid choices are {PlotType}.")
     elif args.command == 'vertices':
