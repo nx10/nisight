@@ -10,6 +10,7 @@ const SHOW_OUTPUT_CONSOLE_ACTION = 'Show output console';
 
 import { Uri, Webview } from "vscode";
 import { WebviewBackendMessage, WebviewFrontendMessage } from '../webview_message';
+import path = require('path');
 
 export function getUri(extensionUri: Uri, pathList: string[]) {
     return Uri.joinPath(extensionUri, ...pathList);
@@ -50,29 +51,21 @@ function build_html(webview: Webview, extensionUri: Uri) {
     
     <body>
       <div style="display:flex;flex-direction:column; height:100%">
-        <div style="display:flex;flex-direction:row">
+        <div style="display:flex;flex-direction:row;justify-content: center;align-items: center;">
     
-          <div style="display:flex;flex-direction:column; margin: 1em">
+          <div style="display:flex;flex-direction:column; margin: 1em; min-width: 80px;">
             <label for="mesh-dropdown">Mesh:</label>
-            <vscode-dropdown id="mesh-dropdown">
-              <vscode-option>path/to/mesh1.blub</vscode-option>
-              <vscode-option>path/to/mesh2.blub</vscode-option>
-              <vscode-option>path/to/mesh3.blub</vscode-option>
-              <vscode-option>Select file...</vscode-option>
-            </vscode-dropdown>
+            <vscode-dropdown id="mesh-dropdown" style="min-width: 80px;"></vscode-dropdown>
           </div>
+
+          <vscode-button id="button-select-mesh">Files...</vscode-button>
     
-          <div style="display:flex;flex-direction:column; margin: 1em">
+          <div style="display:flex;flex-direction:column; margin: 1em; min-width: 80px;">
             <label for="map-dropdown">Map:</label>
-            <vscode-dropdown id="map-dropdown">
-              <vscode-option>path/to/map1.blub</vscode-option>
-              <vscode-option>path/to/map2.blub</vscode-option>
-              <vscode-option>path/to/map3.blub</vscode-option>
-              <vscode-option>Select file...</vscode-option>
-            </vscode-dropdown>
+            <vscode-dropdown id="map-dropdown" style="min-width: 80px;"></vscode-dropdown>
           </div>
+          <vscode-button id="button-select-map">Files...</vscode-button>
         </div>
-    
         <iframe id="viewer-iframe" srcdoc="${loadingHtml}" style="flex:1"></iframe>
       </div>
     
@@ -84,7 +77,7 @@ function build_html(webview: Webview, extensionUri: Uri) {
 }
 
 interface ViewerState {
-    path_mesh: string; 
+    path_mesh: string;
     path_map?: string;
 }
 
@@ -127,6 +120,8 @@ class SurfaceDocument implements vscode.CustomDocument {
     }
 
     async viewImage(webviewPanel: vscode.WebviewPanel, extensionUri: Uri): Promise<void> {
+        
+        webviewPanel.webview.html = build_html(webviewPanel.webview, extensionUri);
 
         const config = vscode.workspace.getConfiguration('nisight');
         const pythonInterpreter = config.get<string>('pythonInterpreter', 'python');
@@ -137,8 +132,6 @@ class SurfaceDocument implements vscode.CustomDocument {
         if (this.viewerState.path_map) {
             args.push('--file2', this.viewerState.path_map);
         }
-
-        webviewPanel.webview.html = build_html(webviewPanel.webview, extensionUri);
 
         const processOutput = await process_capture(pythonInterpreter, args);
 
@@ -159,8 +152,12 @@ class SurfaceDocument implements vscode.CustomDocument {
             webviewPanel.webview.postMessage({
                 command: 'SET_STATE',
                 iframe_contents: msg.content,
-                select_mesh_entries: [],
-                select_map_entries: []
+                select_mesh_entries: [
+                    { value: this.viewerState.path_mesh, label: path.basename(this.viewerState.path_mesh) }
+                ],
+                select_map_entries: [
+                    ...(this.viewerState.path_map ? [{ value: this.viewerState.path_map, label: path.basename(this.viewerState.path_map) }] : [])
+                ]
             });
         }
         else if (msg.status === 'ERROR') {
@@ -196,7 +193,9 @@ export class SurfaceViewer implements vscode.CustomReadonlyEditorProvider<Surfac
 
                 switch (message.command) {
                     case 'CHOOSE_MESH':
-                        vscode.window.showOpenDialog().then((value?: vscode.Uri[]) => {
+                        vscode.window.showOpenDialog({
+                            title: 'Select mesh'
+                        }).then((value?: vscode.Uri[]) => {
                             if (value && value.length > 0) {
                                 if (this.document && this.webviewPanel && this.extensionUri) {
                                     this.document.viewerState.path_mesh = value[0].path;
@@ -206,7 +205,9 @@ export class SurfaceViewer implements vscode.CustomReadonlyEditorProvider<Surfac
                         });
                         break;
                     case 'CHOOSE_MAP':
-                        vscode.window.showOpenDialog().then((value?: vscode.Uri[]) => {
+                        vscode.window.showOpenDialog({
+                            title: 'Select map'
+                        }).then((value?: vscode.Uri[]) => {
                             if (value && value.length > 0) {
                                 if (this.document && this.webviewPanel && this.extensionUri) {
                                     this.document.viewerState.path_map = value[0].path;

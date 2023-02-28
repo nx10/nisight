@@ -1,6 +1,8 @@
 
 import {
+    Button,
     Dropdown,
+    Option,
     provideVSCodeDesignSystem,
     vsCodeBadge,
     vsCodeButton,
@@ -67,7 +69,26 @@ function initWebview() {
         switch (message.command) {
             case 'SET_STATE':
                 const viewerIFrame = document.getElementById('viewer-iframe') as HTMLIFrameElement;
+                const meshDropdown = document.getElementById('mesh-dropdown') as Dropdown;
+                const mapDropdown = document.getElementById('map-dropdown') as Dropdown;
                 viewerIFrame.srcdoc = message.iframe_contents;
+
+                mapDropdown.innerHTML = '';
+                message.select_map_entries.map((e) => {
+                    const opt = document.createElement("vscode-option") as Option;
+                    opt.value = e.value;
+                    opt.innerHTML = e.label;
+                    mapDropdown.appendChild(opt);
+                })
+
+                meshDropdown.innerHTML = '';
+                message.select_mesh_entries.map((e) => {
+                    const opt = document.createElement("vscode-option") as Option;
+                    opt.value = e.value;
+                    opt.innerHTML = e.label;
+                    meshDropdown.appendChild(opt);
+                })
+
                 break;
         
             default:
@@ -82,30 +103,33 @@ function initWebview() {
         const mapDropdown = document.getElementById('map-dropdown') as Dropdown;
 
         meshDropdown.onchange = (ev) => {
-            if (meshDropdown.value === 'Select file...') {
-                vscPostMessage({
-                    command: 'CHOOSE_MESH'
-                });
-            } else {
-                vscPostMessage({
-                    command: 'SET_MESH',
-                    path: meshDropdown.value
-                });
-            }
+            vscPostMessage({
+                command: 'SET_MESH',
+                path: meshDropdown.value
+            });
         };
 
         mapDropdown.onchange = (ev) => {
-            if (mapDropdown.value === 'Select file...') {
-                vscPostMessage({
-                    command: 'CHOOSE_MAP'
-                });
-            } else {
-                vscPostMessage({
-                    command: 'SET_MAP',
-                    path: mapDropdown.value
-                });
-            }
+            vscPostMessage({
+                command: 'SET_MAP',
+                path: mapDropdown.value
+            });
         };
+
+        const meshSelectButton = document.getElementById('button-select-mesh') as Button;
+        const mapSelectButton = document.getElementById('button-select-map') as Button;
+
+        meshSelectButton.onclick = (ev) => {
+            vscPostMessage({
+                command: 'CHOOSE_MESH'
+            });
+        };
+        mapSelectButton.onclick = (ev) => {
+            vscPostMessage({
+                command: 'CHOOSE_MAP'
+            });
+        };
+
     }
 }
 
