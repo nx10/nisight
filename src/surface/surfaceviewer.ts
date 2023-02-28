@@ -50,21 +50,21 @@ function build_html(webview: Webview, extensionUri: Uri) {
     </head>
     
     <body>
-      <div style="display:flex;flex-direction:column; height:100%">
-        <div style="display:flex;flex-direction:row;justify-content: center;align-items: center;">
+      <div style="display:flex;flex-direction:column; height:100%;">
+        <div style="display:flex;flex-direction:row;justify-content: left; align-items: center;">
     
           <div style="display:flex;flex-direction:column; margin: 1em; min-width: 80px;">
             <label for="mesh-dropdown">Mesh:</label>
             <vscode-dropdown id="mesh-dropdown" style="min-width: 80px;"></vscode-dropdown>
           </div>
-
-          <vscode-button id="button-select-mesh">Files...</vscode-button>
+          <vscode-button id="button-select-mesh" style="margin-right: 1em;">Files...</vscode-button>
     
           <div style="display:flex;flex-direction:column; margin: 1em; min-width: 80px;">
             <label for="map-dropdown">Map:</label>
             <vscode-dropdown id="map-dropdown" style="min-width: 80px;"></vscode-dropdown>
           </div>
           <vscode-button id="button-select-map">Files...</vscode-button>
+          
         </div>
         <iframe id="viewer-iframe" srcdoc="${loadingHtml}" style="flex:1"></iframe>
       </div>
