@@ -123,6 +123,10 @@ class SurfaceDocument implements vscode.CustomDocument {
         
         webviewPanel.webview.html = build_html(webviewPanel.webview, extensionUri);
 
+        const use_dark_bg = vscode.window.activeColorTheme.kind === vscode.ColorThemeKind.Dark || 
+            vscode.window.activeColorTheme.kind === vscode.ColorThemeKind.HighContrast;
+        // todo: pass this in python to nilearn.plotting.view_surf(black_bg=use_dark_bg)
+
         const config = vscode.workspace.getConfiguration('nisight');
         const pythonInterpreter = config.get<string>('pythonInterpreter', 'python');
 
