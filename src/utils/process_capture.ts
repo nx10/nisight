@@ -1,12 +1,12 @@
 import { spawn } from 'child_process';
-import * as vscode from 'vscode';
+import { logMessage } from '../utils/logging';
 
 interface ProcessOutput {
     code: number | null
     message: string
 }
 
-export function process_capture(command: string, args?: readonly string[] | undefined, outputConsole?: vscode.OutputChannel): Promise<ProcessOutput> {
+export function process_capture(command: string, args?: readonly string[] | undefined, logOutput?: boolean): Promise<ProcessOutput> {
     return new Promise<ProcessOutput>(
         function (
             resolve: (value: ProcessOutput | PromiseLike<ProcessOutput>) => void,
@@ -17,8 +17,8 @@ export function process_capture(command: string, args?: readonly string[] | unde
             let bufferOut = '';
 
             pythonProcess.stdout.on('data', (data) => {
-                if (outputConsole) {
-                    outputConsole.append(data.toString());
+                if (logOutput) {
+                    logMessage(data.toString(), '');
                 }
                 bufferOut += data;
             });
@@ -31,8 +31,8 @@ export function process_capture(command: string, args?: readonly string[] | unde
             });
 
             process.on('error', function (err) {
-                if (outputConsole) {
-                    outputConsole.append(err.toString());
+                if (logOutput) {
+                    logMessage(err.toString(), '');
                 }
                 reject(err);
             });

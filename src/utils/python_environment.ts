@@ -1,8 +1,8 @@
-import path = require('path');
-import { spawn } from 'child_process';
-import { process_capture } from '../utils/process_capture';
-import * as fs from 'fs';
 import * as vscode from 'vscode';
+import * as fs from 'fs';
+import path = require('path');
+import { process_capture } from '../utils/process_capture';
+import { logMessage } from '../utils/logging';
 
 const VENV_NAME = 'venv';
 const REQUIREMENTS = ['nibabel', 'nilearn'];
@@ -35,29 +35,33 @@ function windowsCompatiblePath(path: string): string {
 export async function createPythonEnvironment(globalStorageUri: vscode.Uri): Promise<void> {
     const globalStoragePath = windowsCompatiblePath(globalStorageUri.path);
     const venvPath = path.join(globalStoragePath, VENV_NAME);
-
-    let outputConsole = vscode.window.createOutputChannel('NiSight-Setup');
     
     if (pythonEnvironmentExists(venvPath)) {
-        fs.rmdirSync(venvPath, { recursive: true });  // TOOO: Remove this line
-        // return;
+        logMessage(`Using Python environment at '${venvPath}'.`);
+        return;
     }
 
-    process_capture(getGlobalPythonInterpreter(), ['-m', 'venv', venvPath], outputConsole).then(async (venvOutput) => {
-        if (venvOutput.code === 0) {
-            const pipArgs = ['-m', 'pip', 'install'].concat(REQUIREMENTS);
-            const interpreterPath = getVenvInterpreter(venvPath);
-            process_capture(interpreterPath, pipArgs, outputConsole).then((pipOutput) => {
-                if (pipOutput.code === 0) {
-                    vscode.window.showInformationMessage('Python environment created.');
-                }
-                else {
-                    vscode.window.showErrorMessage('Failed to install python packages.');
-                }
-            });
-        }
-        else {
-            vscode.window.showErrorMessage('Failed to create python environment.');
-        }
-    });
+    logMessage(`Creating Python environment at '${venvPath}'...`);
+    const venvOutput = await process_capture(getGlobalPythonInterpreter(), ['-m', 'venv', venvPath], true);
+    if (venvOutput.code !== 0)
+    {
+        const msg = 'Failed to create python environment.';
+        logMessage(msg);
+        vscode.window.showErrorMessage(msg);
+        return;
+    }
+
+    logMessage('Installing Python packages...');
+    const pipArgs = ['-m', 'pip', 'install'].concat(REQUIREMENTS);
+    const interpreterPath = getVenvInterpreter(venvPath);
+    const pipOutput = await process_capture(interpreterPath, pipArgs, true);
+    if (pipOutput.code !== 0)
+    {
+        vscode.window.showErrorMessage('Failed to install python packages.');
+        return;
+    }
+
+    const msg = 'Python environment created successfully.';
+    logMessage(msg);
+    vscode.window.showInformationMessage(msg);
 }
