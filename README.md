@@ -1,6 +1,6 @@
-# nisight README
+# nisight 
 
-This is the README for your extension "nisight". After writing up a brief description, we recommend including the following sections.
+VSCode neuro-imaging data viewer with the goal of supporting as many file formats and modalities as possible. 
 
 ## Features
 
