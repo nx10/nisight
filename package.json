@@ -78,10 +78,15 @@
     "configuration": {
       "title": "NiSight",
       "properties": {
-        "nisight.pythonInterpreter": {
+        "nisight.pythonVenv": {
           "type": "string",
           "default": "python",
-          "description": "Python interpreter location (nilearn package required)"
+          "description": "Python virtual environment (created automatically by NiSight)"
+        },
+        "nisight.pythonBaseInterpreter": {
+          "type": "string",
+          "default": "python",
+          "description": "Base python interpreter location"
         }
       }
     }

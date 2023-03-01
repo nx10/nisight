@@ -1,9 +1,9 @@
 import * as vscode from 'vscode';
-import * as child from 'child_process';
 
 import { process_capture } from '../utils/process_capture';
 import { parse_python_message } from '../python_message';
 import { logPythonException } from '../utils/logging';
+import { getVenvInterpreter } from '../utils/python_environment';
 
 
 class VoxelDocument implements vscode.CustomDocument {
@@ -14,8 +14,11 @@ class VoxelDocument implements vscode.CustomDocument {
     }
 
     async viewImage(webviewPanel: vscode.WebviewPanel): Promise<void> {
-        const config = vscode.workspace.getConfiguration('nisight');
-        const pythonInterpreter = config.get<string>('pythonInterpreter', 'python');
+        const pythonInterpreter = getVenvInterpreter();
+        if (pythonInterpreter === undefined) {
+            vscode.window.showErrorMessage('Python environment not found.');
+            return;
+        }
 
         const processOutput = await process_capture(pythonInterpreter, [__dirname + '/../src/python/nisight.py', 'view', '--type', 'img', '--file', this.uri.fsPath]);
 
