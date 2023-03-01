@@ -12,8 +12,6 @@ export function process_capture(command: string, args?: readonly string[] | unde
             resolve: (value: ProcessOutput | PromiseLike<ProcessOutput>) => void,
             reject: (reason?: any) => void
         ) {
-            outputConsole?.append("hello world");
-
             const pythonProcess = spawn(command, args);
 
             let bufferOut = '';
