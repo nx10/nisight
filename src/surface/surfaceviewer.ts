@@ -8,6 +8,7 @@ import { getVenvInterpreter } from '../utils/python_environment';
 import { quoteattr } from '../utils/string_utils';
 import { WebviewFrontendMessage } from '../webview_message';
 import path = require('path');
+import nisightpy from '../python/nisight.py';
 
 const SHOW_OUTPUT_CONSOLE_ACTION = 'Show output console';
 
@@ -100,7 +101,7 @@ class SurfaceDocument implements vscode.CustomDocument {
             return -1;
         }
 
-        const pyPath = getUri(this.extensionUri, ['src', 'python', 'nisight.py']).fsPath;
+        const pyPath = getUri(this.extensionUri, ['dist', nisightpy]).fsPath;
         const processOutput = await process_capture(pythonInterpreter, [pyPath, 'vertices', '--file', file]);
 
         let msg;
@@ -135,7 +136,7 @@ class SurfaceDocument implements vscode.CustomDocument {
             return;
         }
 
-        const pyPath = getUri(this.extensionUri, ['src', 'python', 'nisight.py']).fsPath;
+        const pyPath = getUri(this.extensionUri, ['dist', nisightpy]).fsPath;
         let args = [pyPath, 'view', '--type', 'surf', '--file', this.viewerState.path_mesh];
 
         if (this.viewerState.path_map) {

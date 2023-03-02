@@ -7,6 +7,10 @@ interface ProcessOutput {
 }
 
 export function process_capture(command: string, args?: readonly string[] | undefined, logOutput?: boolean): Promise<ProcessOutput> {
+    console.log(command);
+    if (args)
+        console.log(args);
+    
     return new Promise<ProcessOutput>(
         function (
             resolve: (value: ProcessOutput | PromiseLike<ProcessOutput>) => void,
