@@ -37,7 +37,7 @@ def view_img(file: pl.Path) -> None:
     if not file.exists():
         raise IOError(f"File {file} does not exist.")
     
-    html_viewer = plotting.view_img(file, bg_img=False, black_bg=True)
+    html_viewer = plotting.view_img(file, bg_img=False, black_bg=True, resampling_interpolation="nearest")
     html = html_viewer.html
     
     print_as_json(html)
