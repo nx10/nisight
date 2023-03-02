@@ -1,16 +1,16 @@
+import * as fs from 'fs';
 import * as vscode from 'vscode';
-import { process_capture } from '../utils/process_capture';
+import { Uri, Webview } from "vscode";
 import { parse_python_message } from '../python_message';
 import { logPythonException } from '../utils/logging';
+import { process_capture } from '../utils/process_capture';
+import { getVenvInterpreter } from '../utils/python_environment';
 import { quoteattr } from '../utils/string_utils';
-import * as fs from 'fs';
-
+import { WebviewFrontendMessage } from '../webview_message';
+import path = require('path');
+import nisightpy from '../python/nisight.py';
 
 const SHOW_OUTPUT_CONSOLE_ACTION = 'Show output console';
-
-import { Uri, Webview } from "vscode";
-import { WebviewBackendMessage, WebviewFrontendMessage } from '../webview_message';
-import path = require('path');
 
 export function getUri(extensionUri: Uri, pathList: string[]) {
     return Uri.joinPath(extensionUri, ...pathList);
@@ -95,10 +95,13 @@ class SurfaceDocument implements vscode.CustomDocument {
     }
 
     async getNumVertices(file: string): Promise<number> {
-        const config = vscode.workspace.getConfiguration('nisight');
-        const pythonInterpreter = config.get<string>('pythonInterpreter', 'python');
+        const pythonInterpreter = getVenvInterpreter();
+        if (pythonInterpreter === undefined) {
+            vscode.window.showErrorMessage('Python environment not found.');
+            return -1;
+        }
 
-        const pyPath = getUri(this.extensionUri, ['src', 'python', 'nisight.py']).fsPath;
+        const pyPath = getUri(this.extensionUri, ['dist', nisightpy]).fsPath;
         const processOutput = await process_capture(pythonInterpreter, [pyPath, 'vertices', '--file', file]);
 
         let msg;
@@ -127,10 +130,13 @@ class SurfaceDocument implements vscode.CustomDocument {
             vscode.window.activeColorTheme.kind === vscode.ColorThemeKind.HighContrast;
         // todo: pass this in python to nilearn.plotting.view_surf(black_bg=use_dark_bg)
 
-        const config = vscode.workspace.getConfiguration('nisight');
-        const pythonInterpreter = config.get<string>('pythonInterpreter', 'python');
+        const pythonInterpreter = getVenvInterpreter();
+        if (pythonInterpreter === undefined) {
+            vscode.window.showErrorMessage('Python environment not found.');
+            return;
+        }
 
-        const pyPath = getUri(this.extensionUri, ['src', 'python', 'nisight.py']).fsPath;
+        const pyPath = getUri(this.extensionUri, ['dist', nisightpy]).fsPath;
         let args = [pyPath, 'view', '--type', 'surf', '--file', this.viewerState.path_mesh];
 
         if (this.viewerState.path_map) {
@@ -233,13 +239,14 @@ export class SurfaceViewer implements vscode.CustomReadonlyEditorProvider<Surfac
             }
         );
 
-        if (this.extensionUri)
+        if (this.extensionUri) {
             await document.viewImage(webviewPanel, this.extensionUri);
+        }
     }
 
     register(context: vscode.ExtensionContext) {
 
-        this.extensionUri = context.extensionUri
+        this.extensionUri = context.extensionUri;
 
         context.subscriptions.push(
             vscode.window.registerCustomEditorProvider('nisight.surfaceviewer', this)

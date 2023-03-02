@@ -1,23 +1,40 @@
 import * as vscode from 'vscode';
-import * as child from 'child_process';
 
 import { process_capture } from '../utils/process_capture';
 import { parse_python_message } from '../python_message';
 import { logPythonException } from '../utils/logging';
+import { getVenvInterpreter } from '../utils/python_environment';
+import { Uri } from 'vscode';
+import nisightpy from '../python/nisight.py';
+
+
+export function getUri(extensionUri: Uri, pathList: string[]) {
+    return Uri.joinPath(extensionUri, ...pathList);
+}
+
+export function getWebviewUri(webview: vscode.Webview, extensionUri: Uri, pathList: string[]) {
+    return webview.asWebviewUri(Uri.joinPath(extensionUri, ...pathList));
+}
 
 
 class VoxelDocument implements vscode.CustomDocument {
     uri: vscode.Uri;
+    private extensionUri: vscode.Uri;
 
-    constructor(uri: vscode.Uri) {
+    constructor(uri: vscode.Uri, extensionUri: vscode.Uri) {
         this.uri = uri;
+        this.extensionUri = extensionUri;
     }
 
     async viewImage(webviewPanel: vscode.WebviewPanel): Promise<void> {
-        const config = vscode.workspace.getConfiguration('nisight');
-        const pythonInterpreter = config.get<string>('pythonInterpreter', 'python');
+        const pythonInterpreter = getVenvInterpreter();
+        if (pythonInterpreter === undefined) {
+            vscode.window.showErrorMessage('Python environment not found.');
+            return;
+        }
 
-        const processOutput = await process_capture(pythonInterpreter, [__dirname + '/../src/python/nisight.py', 'view', '--type', 'img', '--file', this.uri.fsPath]);
+        const pyPath = getUri(this.extensionUri, ['dist', nisightpy]).fsPath;
+        const processOutput = await process_capture(pythonInterpreter, [pyPath, 'view', '--type', 'img', '--file', this.uri.fsPath]);
 
         let msg;
         try {
@@ -41,12 +58,13 @@ class VoxelDocument implements vscode.CustomDocument {
 }
 
 export class VoxelViewer implements vscode.CustomReadonlyEditorProvider<VoxelDocument> {
+    private extensionUri?: vscode.Uri;
     private document?: VoxelDocument;
     private webviewPanel?: vscode.WebviewPanel;
 
     openCustomDocument(uri: vscode.Uri, openContext: vscode.CustomDocumentOpenContext, token: vscode.CancellationToken): VoxelDocument | Thenable<VoxelDocument> {
         console.log(uri);
-        this.document = new VoxelDocument(uri);
+        this.document = new VoxelDocument(uri, this.extensionUri as Uri);
         return this.document;
     }
     async resolveCustomEditor(document: VoxelDocument, webviewPanel: vscode.WebviewPanel, token: vscode.CancellationToken): Promise<void> {
@@ -59,6 +77,7 @@ export class VoxelViewer implements vscode.CustomReadonlyEditorProvider<VoxelDoc
     }
 
     register(context: vscode.ExtensionContext) {
+        this.extensionUri = context.extensionUri;
         const voxelDisposable = vscode.window.registerCustomEditorProvider('nisight.voxelviewer', this);
         context.subscriptions.push(voxelDisposable);
 

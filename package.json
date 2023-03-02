@@ -78,10 +78,15 @@
     "configuration": {
       "title": "NiSight",
       "properties": {
-        "nisight.pythonInterpreter": {
+        "nisight.pythonVenv": {
           "type": "string",
           "default": "python",
-          "description": "Python interpreter location (nilearn package required)"
+          "description": "Python virtual environment (created automatically by NiSight)"
+        },
+        "nisight.pythonBaseInterpreter": {
+          "type": "string",
+          "default": "python",
+          "description": "Base python interpreter location"
         }
       }
     }
@@ -107,6 +112,7 @@
     "@typescript-eslint/parser": "^5.49.0",
     "@vscode/test-electron": "^2.2.2",
     "eslint": "^8.33.0",
+    "file-loader": "^6.2.0",
     "glob": "^8.1.0",
     "mocha": "^10.1.0",
     "ts-loader": "^9.4.2",

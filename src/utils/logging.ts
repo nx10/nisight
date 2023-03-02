@@ -17,6 +17,15 @@ export function getOutputConsole() {
     return outputConsole;
 }
 
+export function showOutputConsole() {
+    getOutputConsole().show();
+}
+
+export function logMessage(message: string, eol: string = '\n') {
+    const output = getOutputConsole();
+    output.append(message + eol);
+}
+
 export function logPythonException(exceptionContent: PythonExceptionMessage) {
     const output = getOutputConsole();
 

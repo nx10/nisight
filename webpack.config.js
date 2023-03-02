@@ -37,6 +37,14 @@ const extensionConfig = {
             loader: 'ts-loader'
           }
         ]
+      },
+      {
+        test: /\.py$/i,
+        use: [
+          {
+            loader: 'file-loader',
+          },
+        ]
       }
     ]
   },
