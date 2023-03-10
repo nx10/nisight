@@ -37,7 +37,17 @@ def view_img(file: pl.Path) -> None:
     if not file.exists():
         raise IOError(f"File {file} does not exist.")
     
-    html_viewer = plotting.view_img(file, bg_img=False, black_bg=True, resampling_interpolation="nearest")
+    img = nibabel.load(file)
+
+    if len(img.shape) == 3:
+        show_slice = img
+    elif len(img.shape) == 4: # time series -> show first image
+        from nilearn.image import index_img
+        show_slice = index_img(img, 0)
+    else:
+        raise Exception('Image has wrong dimensions: ' + img.shape)
+    
+    html_viewer = plotting.view_img(show_slice, bg_img=False, black_bg=True, resampling_interpolation="nearest")
     html = html_viewer.html
     
     print_as_json(html)
