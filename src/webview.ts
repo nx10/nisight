@@ -1,4 +1,3 @@
-
 import {
     Button,
     Dropdown,
@@ -25,7 +24,10 @@ import {
     vsCodeTextField,
 } from "@vscode/webview-ui-toolkit";
 import { type WebviewApi } from "vscode-webview";
-import { WebviewFrontendMessage, WebviewBackendMessage } from "./webview_message";
+import {
+    WebviewFrontendMessage,
+    WebviewBackendMessage,
+} from "./webview_message";
 
 // TODO: we do not need all of these
 
@@ -52,9 +54,11 @@ provideVSCodeDesignSystem().register(
 );
 
 declare global {
+    // eslint-disable-next-line no-var
     var vscodeApi: WebviewApi<unknown>;
 }
 
+// eslint-disable-next-line no-var
 var vscodeApi = acquireVsCodeApi();
 
 function vscPostMessage(message: WebviewFrontendMessage) {
@@ -62,35 +66,44 @@ function vscPostMessage(message: WebviewFrontendMessage) {
 }
 
 function initWebview() {
-
-    window.addEventListener('message', (ev: MessageEvent<any>) => {
-        const message: WebviewBackendMessage = ev.data;
+    window.addEventListener("message", (ev: MessageEvent<unknown>) => {
+        const message = ev.data as WebviewBackendMessage;
 
         switch (message.command) {
-            case 'SET_STATE':
-                const viewerIFrame = document.getElementById('viewer-iframe') as HTMLIFrameElement;
-                const meshDropdown = document.getElementById('mesh-dropdown') as Dropdown;
-                const mapDropdown = document.getElementById('map-dropdown') as Dropdown;
+            case "SET_STATE": {
+                const viewerIFrame = document.getElementById(
+                    "viewer-iframe"
+                ) as HTMLIFrameElement;
+                const meshDropdown = document.getElementById(
+                    "mesh-dropdown"
+                ) as Dropdown;
+                const mapDropdown = document.getElementById(
+                    "map-dropdown"
+                ) as Dropdown;
                 viewerIFrame.srcdoc = message.iframe_contents;
 
-                mapDropdown.innerHTML = '';
+                mapDropdown.innerHTML = "";
                 message.select_map_entries.map((e) => {
-                    const opt = document.createElement("vscode-option") as Option;
+                    const opt = document.createElement(
+                        "vscode-option"
+                    ) as Option;
                     opt.value = e.value;
                     opt.innerHTML = e.label;
                     mapDropdown.appendChild(opt);
-                })
+                });
 
-                meshDropdown.innerHTML = '';
+                meshDropdown.innerHTML = "";
                 message.select_mesh_entries.map((e) => {
-                    const opt = document.createElement("vscode-option") as Option;
+                    const opt = document.createElement(
+                        "vscode-option"
+                    ) as Option;
                     opt.value = e.value;
                     opt.innerHTML = e.label;
                     meshDropdown.appendChild(opt);
-                })
+                });
 
                 break;
-        
+            }
             default:
                 break;
         }
@@ -99,38 +112,43 @@ function initWebview() {
     });
 
     window.onload = () => {
-        const meshDropdown = document.getElementById('mesh-dropdown') as Dropdown;
-        const mapDropdown = document.getElementById('map-dropdown') as Dropdown;
+        const meshDropdown = document.getElementById(
+            "mesh-dropdown"
+        ) as Dropdown;
+        const mapDropdown = document.getElementById("map-dropdown") as Dropdown;
 
-        meshDropdown.onchange = (ev) => {
+        meshDropdown.onchange = () => {
             vscPostMessage({
-                command: 'SET_MESH',
-                path: meshDropdown.value
+                command: "SET_MESH",
+                path: meshDropdown.value,
             });
         };
 
-        mapDropdown.onchange = (ev) => {
+        mapDropdown.onchange = () => {
             vscPostMessage({
-                command: 'SET_MAP',
-                path: mapDropdown.value
+                command: "SET_MAP",
+                path: mapDropdown.value,
             });
         };
 
-        const meshSelectButton = document.getElementById('button-select-mesh') as Button;
-        const mapSelectButton = document.getElementById('button-select-map') as Button;
+        const meshSelectButton = document.getElementById(
+            "button-select-mesh"
+        ) as Button;
+        const mapSelectButton = document.getElementById(
+            "button-select-map"
+        ) as Button;
 
-        meshSelectButton.onclick = (ev) => {
+        meshSelectButton.onclick = () => {
             vscPostMessage({
-                command: 'CHOOSE_MESH'
+                command: "CHOOSE_MESH",
             });
         };
-        mapSelectButton.onclick = (ev) => {
+        mapSelectButton.onclick = () => {
             vscPostMessage({
-                command: 'CHOOSE_MAP'
+                command: "CHOOSE_MAP",
             });
         };
-
-    }
+    };
 }
 
 initWebview();
