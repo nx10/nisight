@@ -9,6 +9,7 @@ import { quoteattr } from "../utils/string_utils";
 import { WebviewFrontendMessage } from "../webview_message";
 import path = require("path");
 import nisightpy from "../python/scripts/nisight.py";
+import loading_html from "../html/loading.html";
 import { getUri, getWebviewUri } from "../utils/path_utils";
 
 const SHOW_OUTPUT_CONSOLE_ACTION = "Show output console";
@@ -21,7 +22,7 @@ function build_html(webview: Webview, extensionUri: Uri) {
 
     const loadingHtml = quoteattr(
         fs.readFileSync(
-            getUri(extensionUri, ["src", "html", "loading.html"]).fsPath,
+            getUri(extensionUri, ["dist", loading_html]).fsPath,
             "utf8"
         )
     );

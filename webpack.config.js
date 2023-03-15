@@ -39,12 +39,12 @@ const extensionConfig = {
         ]
       },
       {
-        test: /\.py$/i,
+        test: /(\.py)|(\.html)$/i,
         use: [
           {
             loader: 'file-loader',
             options: {
-              name: '[path][name].[ext]',
+              name: '[name]-[contenthash].[ext]',
             },
           },
         ]
