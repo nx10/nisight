@@ -21,14 +21,15 @@ def print_as_json(data: Any) -> None:
                 "message": str(exception)
             }
         })
-        
-    try:
-        json_object = json.dumps({
-            "status": "OK",
-            "content": data
-        })
-    except TypeError:
-        raise TypeError(f"Data type {type(data)} is not json serializable.")
+    else:
+            
+        try:
+            json_object = json.dumps({
+                "status": "OK",
+                "content": data
+            })
+        except TypeError:
+            raise TypeError(f"Data type {type(data)} is not json serializable.")
 
     print(json_object)
 
@@ -45,7 +46,7 @@ def view_img(file: pl.Path) -> None:
         from nilearn.image import index_img
         show_slice = index_img(img, 0)
     else:
-        raise Exception('Image has wrong dimensions: ' + img.shape)
+        raise Exception('Image has wrong dimensions: ' + str(img.shape))
     
     html_viewer = plotting.view_img(show_slice, bg_img=False, black_bg=True, resampling_interpolation="nearest")
     html = html_viewer.html
@@ -78,6 +79,7 @@ def main() -> None:
     parser = argparse.ArgumentParser()
     subparsers = parser.add_subparsers(dest='command')
     view_parser = subparsers.add_parser('view')
+    view_parser.add_argument("--theme_dark", action='store_true')
     view_parser.add_argument("--file", required=True, type=pl.Path)
     view_parser.add_argument("--file2", default=None, type=pl.Path)
     view_parser.add_argument("--type", required=True, choices=list(PlotType), type=PlotType)

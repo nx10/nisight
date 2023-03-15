@@ -35,9 +35,19 @@ class VoxelDocument implements vscode.CustomDocument {
         ]);
 
         if (processOutput.code !== 0) {
-            console.error(
-                `Python process had non-zero exit code. Message body: '${processOutput.message}'`
-            );
+
+            try {
+                const msg = parsePythonMessage(processOutput.message);
+                if (msg.status === "ERROR") {
+                    logPythonException(msg.content);
+                }
+            } catch (error) {
+                console.error(
+                    `Python process had non-zero exit code. Message body: '${processOutput.message}'`
+                );
+                console.error(error);
+                return;
+            }
             return;
         }
 
