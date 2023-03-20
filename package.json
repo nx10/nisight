@@ -121,6 +121,13 @@
     "webpack-cli": "^5.0.1"
   },
   "dependencies": {
-    "@vscode/webview-ui-toolkit": "^1.2.2"
+    "@types/colormap": "^2.3.1",
+    "@types/stats.js": "^0.17.0",
+    "@types/three": "^0.149.0",
+    "@vscode/webview-ui-toolkit": "^1.2.2",
+    "camera-controls": "^2.3.3",
+    "colormap": "^2.3.2",
+    "stats.js": "^0.17.0",
+    "three": "^0.150.1"
   }
 }

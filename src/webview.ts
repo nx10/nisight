@@ -29,6 +29,8 @@ import {
     WebviewBackendMessage,
 } from "./webview_message";
 
+import { loadScene } from "./surface/surfaceclient";
+
 // TODO: we do not need all of these
 
 provideVSCodeDesignSystem().register(
@@ -80,7 +82,10 @@ function initWebview() {
                 const mapDropdown = document.getElementById(
                     "map-dropdown"
                 ) as Dropdown;
-                viewerIFrame.srcdoc = message.iframe_contents;
+                loadScene(
+                    message.iframe_contents.mesh,
+                    message.iframe_contents.map ?? undefined
+                );
 
                 mapDropdown.innerHTML = "";
                 message.select_map_entries.map((e) => {

@@ -1,7 +1,7 @@
 import * as fs from "fs";
 import * as vscode from "vscode";
 import { Uri, Webview } from "vscode";
-import { parsePythonMessage } from "../python_message";
+import { parsePythonMessage, PythonMessage } from "../python_message";
 import { logPythonException } from "../utils/logging";
 import { processCapture } from "../utils/process_capture";
 import { getVenvInterpreter } from "../utils/python_environment";
@@ -53,7 +53,7 @@ function build_html(webview: Webview, extensionUri: Uri) {
     
     <body>
       <div style="display:flex;flex-direction:column; height:100%;">
-        <div style="display:flex;flex-direction:row;justify-content: left; align-items: center;">
+        <div id="viewer-ui" style="display:flex;flex-direction:row;justify-content: left; align-items: center;">
     
           <div style="display:flex;flex-direction:column; margin: 1em; min-width: 80px;">
             <label for="mesh-dropdown">Mesh:</label>
@@ -68,7 +68,8 @@ function build_html(webview: Webview, extensionUri: Uri) {
           <vscode-button id="button-select-map">Files...</vscode-button>
           
         </div>
-        <iframe id="viewer-iframe" srcdoc="${loadingHtml}" style="flex:1"></iframe>
+        <div id="viewer"></div>
+        <!--<iframe id="viewer-iframe" srcdoc="${loadingHtml}" style="flex:1"></iframe>-->
       </div>
     
       <script src="${webviewUri}"></script>
@@ -87,6 +88,7 @@ class SurfaceDocument implements vscode.CustomDocument {
     uri: vscode.Uri;
     extensionUri: vscode.Uri;
     viewerState: ViewerState;
+    viewerLoaded: boolean = false;
 
     constructor(uri: vscode.Uri, extensionUri: vscode.Uri) {
         this.uri = uri;
@@ -120,7 +122,7 @@ class SurfaceDocument implements vscode.CustomDocument {
         }
 
         if (msg.status === "OK") {
-            return parseInt(msg.content);
+            return parseInt(msg.content as any as string);
         } else if (msg.status === "ERROR") {
             logPythonException(msg.content);
         }
@@ -132,10 +134,13 @@ class SurfaceDocument implements vscode.CustomDocument {
         webviewPanel: vscode.WebviewPanel,
         extensionUri: Uri
     ): Promise<void> {
+        if (!this.viewerLoaded) {
         webviewPanel.webview.html = build_html(
             webviewPanel.webview,
             extensionUri
         );
+        this.viewerLoaded = true;
+        }
 
         const use_dark_bg =
             vscode.window.activeColorTheme.kind ===
@@ -177,7 +182,7 @@ class SurfaceDocument implements vscode.CustomDocument {
             return;
         }
 
-        let msg;
+        let msg: PythonMessage;
         try {
             msg = parsePythonMessage(processOutput.message);
         } catch (error) {
@@ -188,7 +193,10 @@ class SurfaceDocument implements vscode.CustomDocument {
         if (msg.status === "OK") {
             webviewPanel.webview.postMessage({
                 command: "SET_STATE",
-                iframe_contents: msg.content,
+                iframe_contents: {
+                    mesh: {vertices: new Float32Array(msg.content.mesh.vertices).buffer, faces: new Uint32Array(msg.content.mesh.faces).buffer},
+                    map: msg.content.map ? new Float32Array(msg.content.map).buffer : null
+                },
                 select_mesh_entries: [
                     {
                         value: this.viewerState.path_mesh,

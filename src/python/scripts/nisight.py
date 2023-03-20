@@ -4,11 +4,19 @@ import pathlib as pl
 import sys
 from enum import Enum
 from typing import Any, Union, Optional
+import numpy as np
 
 
 class PlotType(Enum):
     IMG = "img"
     SURF = "surf"
+    
+
+class NumpyEncoder(json.JSONEncoder):
+    def default(self, obj):
+        if isinstance(obj, np.ndarray):
+            return obj.tolist()
+        return json.JSONEncoder.default(self, obj)
     
     
 def print_as_json(data: Any) -> None:
@@ -27,7 +35,7 @@ def print_as_json(data: Any) -> None:
             json_object = json.dumps({
                 "status": "OK",
                 "content": data
-            })
+            }, cls=NumpyEncoder)
         except TypeError:
             raise TypeError(f"Data type {type(data)} is not json serializable.")
 
@@ -58,10 +66,20 @@ def view_surf(file_mesh: pl.Path, file_map: Optional[pl.Path] = None) -> None:
     if not file_mesh.exists():
         raise IOError(f"File {file_mesh} does not exist.")
     
-    html_viewer = plotting.view_surf(file_mesh, file_map, black_bg=True)
-    html = html_viewer.html
+    import nilearn.surface
     
-    print_as_json(html)
+    surf_mesh = nilearn.surface.load_surf_mesh(file_mesh)
+    surf_map = None
+    if file_map is not None:
+        surf_map = nilearn.surface.load_surf_data(file_map)
+    
+    #html_viewer = plotting.view_surf(file_mesh, file_map, black_bg=True)
+    #html = html_viewer.html
+    
+    print_as_json({
+        'mesh': {'vertices': surf_mesh.coordinates.flatten(), 'faces': surf_mesh.faces.flatten()},
+        'map': surf_map
+    })
     
     
 def get_num_vertices(file: pl.Path) -> int:

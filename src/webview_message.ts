@@ -21,7 +21,10 @@ type SelectEntry = {
 
 export type WebviewBackendMessage = {
     command: "SET_STATE";
-    iframe_contents: string;
+    iframe_contents: {
+        mesh: {vertices: ArrayBufferLike, faces: ArrayBufferLike},
+        map: ArrayBufferLike | null
+    };
     select_mesh_entries: SelectEntry[];
     select_map_entries: SelectEntry[];
 };

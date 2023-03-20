@@ -1,7 +1,10 @@
 export type PythonMessage =
     | {
           status: "OK";
-          content: string;
+          content: {
+            mesh: {vertices: number[], faces: number[]},
+            map: number[] | null
+        };
       }
     | {
           status: "ERROR";

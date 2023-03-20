@@ -60,7 +60,7 @@ class VoxelDocument implements vscode.CustomDocument {
         }
 
         if (msg.status === "OK") {
-            webviewPanel.webview.html = msg.content as string;
+            webviewPanel.webview.html = msg.content as any as string;
         } else if (msg.status === "ERROR") {
             logPythonException(msg.content);
         }
