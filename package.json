@@ -19,27 +19,8 @@
   "main": "./dist/extension.js",
   "contributes": {
     "commands": [
-      {
-        "command": "nisight.voxelviewer.refresh",
-        "category": "NiSight",
-        "title": "Refresh Voxel Viewer",
-        "icon": "$(extensions-refresh)"
-      }
     ],
     "customEditors": [
-      {
-        "viewType": "nisight.voxelviewer",
-        "displayName": "Voxel Viewer",
-        "selector": [
-          {
-            "filenamePattern": "*.nii.gz"
-          },
-          {
-            "filenamePattern": "*.nii"
-          }
-        ],
-        "priority": "default"
-      },
       {
         "viewType": "nisight.surfaceviewer",
         "displayName": "Surface Viewer",
@@ -66,15 +47,6 @@
         "priority": "default"
       }
     ],
-    "menus": {
-      "editor/title": [
-        {
-          "when": "activeCustomEditorId == nisight.voxelviewer",
-          "command": "nisight.voxelviewer.refresh",
-          "group": "navigation"
-        }
-      ]
-    },
     "configuration": {
       "title": "NiSight",
       "properties": {
