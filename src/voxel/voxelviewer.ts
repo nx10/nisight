@@ -1,7 +1,6 @@
 import * as vscode from "vscode";
 
 import { processCapture } from "../utils/process_capture";
-import { parsePythonMessage } from "../python_message";
 import { logPythonException } from "../utils/logging";
 import { getVenvInterpreter } from "../utils/python_environment";
 import { Uri } from "vscode";
@@ -37,7 +36,7 @@ class VoxelDocument implements vscode.CustomDocument {
         if (processOutput.code !== 0) {
 
             try {
-                const msg = parsePythonMessage(processOutput.message);
+                const msg: any = {}//parsePythonMessage(processOutput.message);
                 if (msg.status === "ERROR") {
                     logPythonException(msg.content);
                 }
@@ -51,9 +50,9 @@ class VoxelDocument implements vscode.CustomDocument {
             return;
         }
 
-        let msg;
+        let msg: any;
         try {
-            msg = parsePythonMessage(processOutput.message);
+            msg = {}//parsePythonMessage(processOutput.message);
         } catch (error) {
             console.error(error);
             return;

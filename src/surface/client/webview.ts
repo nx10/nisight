@@ -27,9 +27,9 @@ import { type WebviewApi } from "vscode-webview";
 import {
     WebviewFrontendMessage,
     WebviewBackendMessage,
-} from "./webview_message";
+} from "../webview_message";
 
-import { loadScene } from "./surface/surfaceclient";
+import { loadScene } from "./surfaceclient";
 
 // TODO: we do not need all of these
 
@@ -67,41 +67,37 @@ function vscPostMessage(message: WebviewFrontendMessage) {
     return vscodeApi.postMessage(message);
 }
 
+function getDocElem<T extends HTMLElement>(id: string) {
+    return document.getElementById(id) as T;
+}
+
 function initWebview() {
     window.addEventListener("message", (ev: MessageEvent<unknown>) => {
         const message = ev.data as WebviewBackendMessage;
 
         switch (message.command) {
             case "SET_STATE": {
-                const viewerIFrame = document.getElementById(
-                    "viewer-iframe"
-                ) as HTMLIFrameElement;
-                const meshDropdown = document.getElementById(
-                    "mesh-dropdown"
-                ) as Dropdown;
-                const mapDropdown = document.getElementById(
-                    "map-dropdown"
-                ) as Dropdown;
+                const meshDropdown: Dropdown = getDocElem("mesh-dropdown");
+                const mapDropdown: Dropdown = getDocElem("map-dropdown");
+
+                if (!message.data.mesh) return;
+
                 loadScene(
-                    message.iframe_contents.mesh,
-                    message.iframe_contents.map ?? undefined
+                    message.data.mesh,
+                    message.data.map ?? undefined
                 );
 
                 mapDropdown.innerHTML = "";
-                message.select_map_entries.map((e) => {
-                    const opt = document.createElement(
-                        "vscode-option"
-                    ) as Option;
+                message.selectMapEntries.map((e) => {
+                    const opt: Option = getDocElem("vscode-option");
                     opt.value = e.value;
                     opt.innerHTML = e.label;
                     mapDropdown.appendChild(opt);
                 });
 
                 meshDropdown.innerHTML = "";
-                message.select_mesh_entries.map((e) => {
-                    const opt = document.createElement(
-                        "vscode-option"
-                    ) as Option;
+                message.selectMeshEntries.map((e) => {
+                    const opt: Option = getDocElem("vscode-option");
                     opt.value = e.value;
                     opt.innerHTML = e.label;
                     meshDropdown.appendChild(opt);
@@ -117,10 +113,8 @@ function initWebview() {
     });
 
     window.onload = () => {
-        const meshDropdown = document.getElementById(
-            "mesh-dropdown"
-        ) as Dropdown;
-        const mapDropdown = document.getElementById("map-dropdown") as Dropdown;
+        const meshDropdown: Dropdown = getDocElem("mesh-dropdown");
+        const mapDropdown: Dropdown = getDocElem("map-dropdown");
 
         meshDropdown.onchange = () => {
             vscPostMessage({
@@ -136,12 +130,8 @@ function initWebview() {
             });
         };
 
-        const meshSelectButton = document.getElementById(
-            "button-select-mesh"
-        ) as Button;
-        const mapSelectButton = document.getElementById(
-            "button-select-map"
-        ) as Button;
+        const meshSelectButton: Button = getDocElem("button-select-mesh");
+        const mapSelectButton: Button = getDocElem("button-select-map");
 
         meshSelectButton.onclick = () => {
             vscPostMessage({

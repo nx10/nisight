@@ -1,20 +1,17 @@
 import * as fs from "fs";
 import * as vscode from "vscode";
 import { Uri, Webview } from "vscode";
-import { parsePythonMessage, PythonMessage } from "../python_message";
-import { logPythonException } from "../utils/logging";
-import { processCapture } from "../utils/process_capture";
-import { getVenvInterpreter } from "../utils/python_environment";
-import { quoteattr } from "../utils/string_utils";
-import { WebviewFrontendMessage } from "../webview_message";
-import path = require("path");
-import nisightpy from "../python/scripts/nisight.py";
 import loading_html from "../html/loading.html";
+import { surfaceExtract } from "../python/surface_extract";
 import { getUri, getWebviewUri } from "../utils/path_utils";
+import { quoteattr } from "../utils/string_utils";
+import {
+    WebviewBackendMessage,
+    WebviewFrontendMessage,
+} from "./webview_message";
+import path = require("path");
 
-const SHOW_OUTPUT_CONSOLE_ACTION = "Show output console";
-
-function build_html(webview: Webview, extensionUri: Uri) {
+function buildHtml(webview: Webview, extensionUri: Uri) {
     const webviewUri = getWebviewUri(webview, extensionUri, [
         "dist",
         "webview.js",
@@ -80,8 +77,8 @@ function build_html(webview: Webview, extensionUri: Uri) {
 }
 
 interface ViewerState {
-    path_mesh: string;
-    path_map?: string;
+    pathMesh: Uri;
+    pathMap?: Uri;
 }
 
 class SurfaceDocument implements vscode.CustomDocument {
@@ -89,135 +86,129 @@ class SurfaceDocument implements vscode.CustomDocument {
     extensionUri: vscode.Uri;
     viewerState: ViewerState;
     viewerLoaded: boolean = false;
+    webview?: vscode.Webview;
 
     constructor(uri: vscode.Uri, extensionUri: vscode.Uri) {
         this.uri = uri;
         this.extensionUri = extensionUri;
         this.viewerState = {
-            path_mesh: uri.fsPath,
+            pathMesh: uri,
         };
     }
 
-    async getNumVertices(file: string): Promise<number> {
-        const pythonInterpreter = getVenvInterpreter();
-        if (pythonInterpreter === undefined) {
-            vscode.window.showErrorMessage("Python environment not found.");
-            return -1;
+    private initWebview() {
+        if (!this.webview) {
+            return;
         }
 
-        const pyPath = getUri(this.extensionUri, ["dist", nisightpy]).fsPath;
-        const processOutput = await processCapture(pythonInterpreter, [
-            pyPath,
-            "vertices",
-            "--file",
-            file,
-        ]);
+        this.webview.html = buildHtml(this.webview, this.extensionUri);
 
-        let msg;
-        try {
-            msg = parsePythonMessage(processOutput.message);
-        } catch (error) {
-            console.error(error);
-            return -1;
-        }
-
-        if (msg.status === "OK") {
-            return parseInt(msg.content as any as string);
-        } else if (msg.status === "ERROR") {
-            logPythonException(msg.content);
-        }
-
-        return -1;
+        this.webview.onDidReceiveMessage((msg: WebviewFrontendMessage) =>
+            this.receiveWebviewMessage(msg)
+        );
     }
 
-    async viewImage(
-        webviewPanel: vscode.WebviewPanel,
-        extensionUri: Uri
-    ): Promise<void> {
+    async viewImage(): Promise<void> {
+        // Setup viewer webview if necessary
+        if (!this.webview) {
+            return;
+        }
+
         if (!this.viewerLoaded) {
-        webviewPanel.webview.html = build_html(
-            webviewPanel.webview,
-            extensionUri
+            this.initWebview();
+            this.viewerLoaded = true;
+        }
+
+        // Extract surface data from file(s)
+
+        const surf = await surfaceExtract(
+            this.extensionUri,
+            this.viewerState.pathMesh,
+            this.viewerState.pathMap
         );
-        this.viewerLoaded = true;
-        }
 
-        const use_dark_bg =
-            vscode.window.activeColorTheme.kind ===
-                vscode.ColorThemeKind.Dark ||
-            vscode.window.activeColorTheme.kind ===
-                vscode.ColorThemeKind.HighContrast;
-        // todo: pass this in python to nilearn.plotting.view_surf(black_bg=use_dark_bg)
-
-        const pythonInterpreter = getVenvInterpreter();
-        if (pythonInterpreter === undefined) {
-            vscode.window.showErrorMessage("Python environment not found.");
+        if (!surf) {
             return;
         }
 
-        const pyPath = getUri(this.extensionUri, ["dist", nisightpy]).fsPath;
-        const args = [
-            pyPath,
-            "view",
-            "--type",
-            "surf",
-            "--file",
-            this.viewerState.path_mesh,
-        ];
+        // Send surface data to webview
 
-        if (use_dark_bg) {
-            args.push("--theme_dark");
-        }
-
-        if (this.viewerState.path_map) {
-            args.push("--file2", this.viewerState.path_map);
-        }
-
-        const processOutput = await processCapture(pythonInterpreter, args);
-
-        if (processOutput.code !== 0) {
-            console.error(
-                `Python process had non-zero exit code. Message body: '${processOutput.message}'`
-            );
-            return;
-        }
-
-        let msg: PythonMessage;
-        try {
-            msg = parsePythonMessage(processOutput.message);
-        } catch (error) {
-            console.error(error);
-            return;
-        }
-
-        if (msg.status === "OK") {
-            webviewPanel.webview.postMessage({
-                command: "SET_STATE",
-                iframe_contents: {
-                    mesh: {vertices: new Float32Array(msg.content.mesh.vertices).buffer, faces: new Uint32Array(msg.content.mesh.faces).buffer},
-                    map: msg.content.map ? new Float32Array(msg.content.map).buffer : null
+        const msg: WebviewBackendMessage = {
+            command: "SET_STATE",
+            data: {
+                mesh: surf.mesh
+                    ? {
+                          vertices: new Float32Array(surf.mesh.vertices).buffer,
+                          faces: new Uint32Array(surf.mesh.faces).buffer,
+                      }
+                    : null,
+                map: surf.map ? new Float32Array(surf.map).buffer : null,
+            },
+            selectMeshEntries: [
+                {
+                    value: this.viewerState.pathMesh.fsPath,
+                    label: path.basename(this.viewerState.pathMesh.fsPath),
                 },
-                select_mesh_entries: [
-                    {
-                        value: this.viewerState.path_mesh,
-                        label: path.basename(this.viewerState.path_mesh),
-                    },
-                ],
-                select_map_entries: [
-                    ...(this.viewerState.path_map
-                        ? [
-                              {
-                                  value: this.viewerState.path_map,
-                                  label: path.basename(
-                                      this.viewerState.path_map
-                                  ),
-                              },
-                          ]
-                        : []),
-                ],
-            });
-        } else if (msg.status === "ERROR") {
-            logPythonException(msg.content);
+            ],
+            selectMapEntries: [
+                ...(this.viewerState.pathMap
+                    ? [
+                          {
+                              value: this.viewerState.pathMap.fsPath,
+                              label: path.basename(
+                                  this.viewerState.pathMap.fsPath
+                              ),
+                          },
+                      ]
+                    : []),
+            ],
+        };
+
+        this.sendWebviewMessage(msg);
+    }
+
+    private sendWebviewMessage(message: WebviewBackendMessage) {
+        if (!this.webview) {
+            return;
+        }
+        return this.webview.postMessage(message);
+    }
+
+    private receiveWebviewMessage(message: WebviewFrontendMessage) {
+        switch (message.command) {
+            case "CHOOSE_MESH":
+                vscode.window
+                    .showOpenDialog({
+                        title: "Select mesh",
+                    })
+                    .then((value?: vscode.Uri[]) => {
+                        if (value && value.length > 0) {
+                            this.viewerState.pathMesh = value[0];
+                            this.viewImage();
+                        }
+                    });
+                break;
+            case "CHOOSE_MAP":
+                vscode.window
+                    .showOpenDialog({
+                        title: "Select map",
+                    })
+                    .then((value?: vscode.Uri[]) => {
+                        if (value && value.length > 0) {
+                            this.viewerState.pathMap = value[0];
+                            this.viewImage();
+                        }
+                    });
+                break;
+            case "SET_MESH":
+                console.log("Set mesh: " + message.path);
+                break;
+            case "SET_MAP":
+                console.log("Set map: " + message.path);
+                break;
+
+            default:
+                break;
         }
     }
 
@@ -230,8 +221,6 @@ export class SurfaceViewer
     implements vscode.CustomReadonlyEditorProvider<SurfaceDocument>
 {
     private extensionUri?: Uri;
-    private webviewPanel?: vscode.WebviewPanel;
-    private document?: SurfaceDocument;
 
     openCustomDocument(
         uri: vscode.Uri,
@@ -249,71 +238,11 @@ export class SurfaceViewer
             enableScripts: true,
             enableForms: true,
         };
-        this.webviewPanel = webviewPanel;
-        this.document = document;
 
-        webviewPanel.webview.onDidReceiveMessage(
-            (message: WebviewFrontendMessage) => {
-                switch (message.command) {
-                    case "CHOOSE_MESH":
-                        vscode.window
-                            .showOpenDialog({
-                                title: "Select mesh",
-                            })
-                            .then((value?: vscode.Uri[]) => {
-                                if (value && value.length > 0) {
-                                    if (
-                                        this.document &&
-                                        this.webviewPanel &&
-                                        this.extensionUri
-                                    ) {
-                                        this.document.viewerState.path_mesh =
-                                            value[0].path;
-                                        this.document.viewImage(
-                                            this.webviewPanel,
-                                            this.extensionUri
-                                        );
-                                    }
-                                }
-                            });
-                        break;
-                    case "CHOOSE_MAP":
-                        vscode.window
-                            .showOpenDialog({
-                                title: "Select map",
-                            })
-                            .then((value?: vscode.Uri[]) => {
-                                if (value && value.length > 0) {
-                                    if (
-                                        this.document &&
-                                        this.webviewPanel &&
-                                        this.extensionUri
-                                    ) {
-                                        this.document.viewerState.path_map =
-                                            value[0].path;
-                                        this.document.viewImage(
-                                            this.webviewPanel,
-                                            this.extensionUri
-                                        );
-                                    }
-                                }
-                            });
-                        break;
-                    case "SET_MESH":
-                        console.log("Set mesh: " + message.path);
-                        break;
-                    case "SET_MAP":
-                        console.log("Set map: " + message.path);
-                        break;
-
-                    default:
-                        break;
-                }
-            }
-        );
+        document.webview = webviewPanel.webview;
 
         if (this.extensionUri) {
-            await document.viewImage(webviewPanel, this.extensionUri);
+            await document.viewImage();
         }
     }
 

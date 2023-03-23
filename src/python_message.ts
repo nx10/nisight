@@ -1,19 +1,20 @@
-export type PythonMessage =
-    | {
-          status: "OK";
-          content: {
-            mesh: {vertices: number[], faces: number[]},
-            map: number[] | null
-        };
-      }
-    | {
-          status: "ERROR";
-          content: {
-              exception: string;
-              message: string;
-          };
-      };
 
-export function parsePythonMessage(messageJson: string): PythonMessage {
-    return JSON.parse(messageJson) as PythonMessage;
-}
+export type PythonMessage<TStatus, TContent> = {
+    status: TStatus;
+    content: TContent;
+};
+
+export type PythonMessageErrorContent = {
+    exception: string;
+    message: string;
+};
+
+export type PythonMessageError = PythonMessage<"ERROR", PythonMessageErrorContent>;
+
+export type PythonMessageSurfaceContent = {
+    mesh: {vertices: number[], faces: number[]} | null,
+    map: number[] | null
+};
+
+export type PythonMessageSurface = PythonMessage<"OK", PythonMessageSurfaceContent>;
+
