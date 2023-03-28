@@ -1,9 +1,12 @@
 import * as THREE from "three";
 import CameraControls from "camera-controls";
 import Stats from "stats.js";
-import colormap from "colormap";
+import * as d3 from "d3";
 
-export type SurfaceDataMesh = {vertices: ArrayBufferLike, faces: ArrayBufferLike};
+export type SurfaceDataMesh = {
+    vertices: ArrayBufferLike;
+    faces: ArrayBufferLike;
+};
 export type SurfaceDataMap = ArrayBufferLike;
 
 function minMax(arr: number[] | ArrayLike<number>) {
@@ -74,28 +77,44 @@ function fragmentShader() {
     `;
 }
 
-function interpColor(scale: [number, number, number, number][]): (x: number) => [number, number, number, number] {
+function interpColor(
+    scale: [number, number, number, number][]
+): (x: number) => [number, number, number, number] {
     return function (x: number) {
-        const y = x * (scale.length -1);
+        const y = x * (scale.length - 1);
         const yr0 = y % 1;
         const yr1 = 1 - yr0;
         const y0 = Math.floor(y);
-        const y1 = Math.min(y0 + 1, (scale.length -1));
+        const y1 = Math.min(y0 + 1, scale.length - 1);
 
         return [
-            scale[y0][0] * yr0 + scale[y1][0] * yr1, 
-            scale[y0][1] * yr0 + scale[y1][1] * yr1, 
-            scale[y0][2] * yr0 + scale[y1][2] * yr1, 
-            scale[y0][3] * yr0 + scale[y1][3] * yr1
+            scale[y0][0] * yr0 + scale[y1][0] * yr1,
+            scale[y0][1] * yr0 + scale[y1][1] * yr1,
+            scale[y0][2] * yr0 + scale[y1][2] * yr1,
+            scale[y0][3] * yr0 + scale[y1][3] * yr1,
         ];
     };
 }
 
-export function loadScene(data_mesh: SurfaceDataMesh, data_map?: SurfaceDataMap) {
-    const viewerRoot = document.getElementById('viewer');
-    const viewerUi = document.getElementById('viewer-ui') as HTMLElement;
+function hexToRgb(hex: string) {
+    const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+    return result
+        ? [
+              parseInt(result[1], 16) / 255,
+              parseInt(result[2], 16) / 255,
+              parseInt(result[3], 16) / 255,
+          ]
+        : null;
+}
+
+export function loadScene(
+    data_mesh: SurfaceDataMesh,
+    data_map?: SurfaceDataMap
+) {
+    const viewerRoot = document.getElementById("viewer");
+    const viewerUi = document.getElementById("viewer-ui") as HTMLElement;
     if (!viewerRoot) return;
-    viewerRoot.innerHTML = '';
+    viewerRoot.innerHTML = "";
 
     const scene = new THREE.Scene();
 
@@ -108,7 +127,11 @@ export function loadScene(data_mesh: SurfaceDataMesh, data_map?: SurfaceDataMap)
     camera.position.set(-150, 100, -100);
 
     const renderer = new THREE.WebGLRenderer();
-    renderer.setSize(viewerRoot.clientWidth, (viewerRoot?.parentElement?.clientHeight || 400) - viewerUi.getBoundingClientRect().bottom);
+    renderer.setSize(
+        viewerRoot.clientWidth,
+        (viewerRoot?.parentElement?.clientHeight || 400) -
+            viewerUi.getBoundingClientRect().bottom
+    );
     viewerRoot.appendChild(renderer.domElement);
 
     CameraControls.install({ THREE: THREE });
@@ -133,19 +156,21 @@ export function loadScene(data_mesh: SurfaceDataMesh, data_map?: SurfaceDataMap)
 
         //const cols = new Float32Array(data_map.map((x) => (x - min_col) / (max_col - min_col)));
 
-        const col = interpColor(colormap({
-            colormap: "viridis",
-            format: "float",
-        }));
+        const col = (x: number) => hexToRgb(d3.interpolateViridis(x)) ?? [0,0,0];
 
         const cols = new Float32Array(
-            Array.from(data_arr).map((x) => col((x - min_col) / (max_col - min_col))).flat()
+            Array.from(data_arr)
+                .map((x) => col((x - min_col) / (max_col - min_col)))
+                .flat()
         );
-        geometry.setAttribute("color", new THREE.BufferAttribute(cols, 4));
+        console.log(cols)
+        geometry.setAttribute("color", new THREE.BufferAttribute(cols, 3));
     }
 
     geometry.setAttribute("position", new THREE.BufferAttribute(verts, 3));
-    geometry.setIndex(new THREE.BufferAttribute(new Uint32Array(data_mesh.faces), 1));
+    geometry.setIndex(
+        new THREE.BufferAttribute(new Uint32Array(data_mesh.faces), 1)
+    );
 
     geometry.computeVertexNormals();
 
@@ -174,14 +199,20 @@ export function loadScene(data_mesh: SurfaceDataMesh, data_map?: SurfaceDataMap)
         if (!viewerRoot) {
             return;
         }
-        
-        camera.aspect = viewerRoot.clientWidth / ((viewerRoot?.parentElement?.clientHeight || 400) - viewerUi.getBoundingClientRect().bottom);
+
+        camera.aspect =
+            viewerRoot.clientWidth /
+            ((viewerRoot?.parentElement?.clientHeight || 400) -
+                viewerUi.getBoundingClientRect().bottom);
         camera.updateProjectionMatrix();
-        renderer.setSize(viewerRoot.clientWidth, (viewerRoot?.parentElement?.clientHeight || 400) - viewerUi.getBoundingClientRect().bottom);
+        renderer.setSize(
+            viewerRoot.clientWidth,
+            (viewerRoot?.parentElement?.clientHeight || 400) -
+                viewerUi.getBoundingClientRect().bottom
+        );
         render();
     }
     window.addEventListener("resize", onWindowResize, false);
-
 
     const stats = new Stats();
     stats.showPanel(0);

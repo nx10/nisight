@@ -28,6 +28,7 @@ import {
     WebviewFrontendMessage,
     WebviewBackendMessage,
 } from "../webview_message";
+import { Legend } from "./legend";
 
 import { loadScene } from "./surfaceclient";
 
@@ -71,7 +72,11 @@ function getDocElem<T extends HTMLElement>(id: string) {
     return document.getElementById(id) as T;
 }
 
+
+
 function initWebview() {
+    new Legend().init();
+
     window.addEventListener("message", (ev: MessageEvent<unknown>) => {
         const message = ev.data as WebviewBackendMessage;
 
@@ -80,12 +85,11 @@ function initWebview() {
                 const meshDropdown: Dropdown = getDocElem("mesh-dropdown");
                 const mapDropdown: Dropdown = getDocElem("map-dropdown");
 
-                if (!message.data.mesh) return;
+                if (!message.data.mesh) {
+                    return;
+                }
 
-                loadScene(
-                    message.data.mesh,
-                    message.data.map ?? undefined
-                );
+                loadScene(message.data.mesh, message.data.map ?? undefined);
 
                 mapDropdown.innerHTML = "";
                 message.selectMapEntries.map((e) => {
