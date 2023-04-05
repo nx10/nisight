@@ -59,6 +59,19 @@ export async function createPythonEnvironment(
         return;
     }
 
+    logMessage(`Checking python interpreter...`);
+    const versionOutput = await processCapture(
+        getBaseInterpreter(),
+        ["--version"],
+        true
+    );
+    if (versionOutput.code !== 0) {
+        const msg = "Failed to find python interpreter (check extension settings).";
+        logMessage(msg);
+        vscode.window.showErrorMessage(msg);
+        return;
+    }
+
     logMessage(`Creating Python environment at '${venvPath}'...`);
     const venvOutput = await processCapture(
         getBaseInterpreter(),
