@@ -2,8 +2,8 @@ import * as vscode from "vscode";
 import { SurfaceViewer } from "./surface/surfaceviewer";
 import { createPythonEnvironment } from "./utils/python_environment";
 
-export function activate(context: vscode.ExtensionContext) {
-    vscode.window.withProgress(
+export async function activate(context: vscode.ExtensionContext) {
+    await vscode.window.withProgress(
         {
             location: vscode.ProgressLocation.Window,
             cancellable: false,
