@@ -15,7 +15,7 @@ interface ViewerState {
 class SurfaceDocument implements vscode.CustomDocument {
     uri: vscode.Uri;
     extensionUri: vscode.Uri;
-    viewerState: ViewerState;
+    public viewerState: ViewerState;
     viewerLoaded: boolean = false;
     webview?: vscode.Webview;
 
@@ -152,6 +152,7 @@ export class SurfaceViewer
     implements vscode.CustomReadonlyEditorProvider<SurfaceDocument>
 {
     private extensionUri?: vscode.Uri;
+    private activeDocument?: SurfaceDocument;
 
     openCustomDocument(
         uri: vscode.Uri,
@@ -170,6 +171,14 @@ export class SurfaceViewer
             enableForms: true,
         };
 
+        this.activeDocument = document;
+
+        webviewPanel.onDidChangeViewState((e) => {
+            if (e.webviewPanel.visible && e.webviewPanel.active) {
+                this.activeDocument = document;
+            }
+        });
+
         document.webview = webviewPanel.webview;
 
         if (this.extensionUri) {
@@ -184,7 +193,19 @@ export class SurfaceViewer
             vscode.window.registerCustomEditorProvider(
                 "nisight.surfaceviewer",
                 this
-            )
+            ),
+            vscode.commands.registerCommand('nisight.viewfile', (...args: unknown[]) => {
+                if (!this.activeDocument) {
+                    return;
+                }
+
+                if (args.length > 0 && args[0] instanceof vscode.Uri) {
+                    const filepath = args[0];
+                    
+                    this.activeDocument.viewerState.pathMap = filepath;
+                    this.activeDocument.viewImage();
+                }
+            })
         );
     }
 }

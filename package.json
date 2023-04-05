@@ -18,7 +18,20 @@
   ],
   "main": "./dist/extension.js",
   "contributes": {
-    "commands": [],
+    "commands": [
+      {
+        "command": "nisight.viewfile",
+        "title": "View in NiSight",
+        "category": "NiSight"
+      }
+    ],
+    "menus": {
+      "explorer/context": [{
+        "when": "activeCustomEditorId == nisight.surfaceviewer",
+        "command": "nisight.viewfile",
+        "group": "navigation"
+      }]
+    },
     "customEditors": [
       {
         "viewType": "nisight.surfaceviewer",
