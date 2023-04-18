@@ -6,7 +6,7 @@ import { logMessage, showOutputConsole } from "../utils/logging";
 import { getUri, windowsCompatiblePath } from "../utils/path_utils";
 
 const VENV_NAME = "venv";
-const REQUIREMENTS = ["nibabel", "nilearn", "matplotlib"];
+const REQUIREMENTS = ["nibabel"];
 
 const config = vscode.workspace.getConfiguration("nisight");
 
