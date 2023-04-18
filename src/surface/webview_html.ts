@@ -37,7 +37,7 @@ export function buildHtml(webview: vscode.Webview, extensionUri: vscode.Uri) {
       <div style="display:flex;flex-direction:column; height:100%;">
         <div id="viewer-ui" style="display:flex;flex-direction:row;justify-content: left; align-items: center;">
     
-          <div style="display:flex;flex-direction:column; margin: 1em; min-width: 80px;">
+          <!--<div style="display:flex;flex-direction:column; margin: 1em; min-width: 80px;">
             <label for="mesh-dropdown">Mesh:</label>
             <vscode-dropdown id="mesh-dropdown" style="min-width: 80px;"></vscode-dropdown>
           </div>
@@ -46,8 +46,13 @@ export function buildHtml(webview: vscode.Webview, extensionUri: vscode.Uri) {
           <div style="display:flex;flex-direction:column; margin: 1em; min-width: 80px;">
             <label for="map-dropdown">Map:</label>
             <vscode-dropdown id="map-dropdown" style="min-width: 80px;"></vscode-dropdown>
+          </div>-->
+          <vscode-button id="button-select-file">Load file</vscode-button>
+
+          <div style="display:flex;flex-direction:column; margin: 1em; min-width: 80px;">
+            <label for="dropdown-color">Color:</label>
+            <vscode-dropdown id="dropdown-color" style="min-width: 80px;"></vscode-dropdown>
           </div>
-          <vscode-button id="button-select-map">Files...</vscode-button>
           
         </div>
         <div id="viewer"></div>

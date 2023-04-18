@@ -1,5 +1,5 @@
 import * as vscode from "vscode";
-import { SurfaceViewer } from "./surface/surfaceviewer";
+import { NeuroEditor } from "./surface/neuro_editor";
 import { createPythonEnvironment } from "./utils/python_environment";
 
 export async function activate(context: vscode.ExtensionContext) {
@@ -16,7 +16,7 @@ export async function activate(context: vscode.ExtensionContext) {
         }
     );
 
-    new SurfaceViewer().register(context);
+    new NeuroEditor().register(context);
 }
 
 export function deactivate() {

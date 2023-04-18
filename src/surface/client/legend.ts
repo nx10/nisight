@@ -1,4 +1,5 @@
 import * as d3 from "d3";
+import { getDocElem } from "./utils";
 
 export class Legend {
     public color = d3.scaleSequential([20, 25], d3.interpolateViridis);
@@ -15,9 +16,7 @@ export class Legend {
     public tickValues = undefined;
     public title: string = "Intensity";
 
-
     public init() {
-
         function ramp(
             color: d3.ScaleSequential<string, never>,
             n = 256
@@ -54,12 +53,21 @@ export class Legend {
                 .selectAll(".tick line")
                 .attr("y1", this.marginTop + this.marginBottom - this.height);
 
-        const n = Math.min(this.color.domain().length, this.color.range().length);
+        const n = Math.min(
+            this.color.domain().length,
+            this.color.range().length
+        );
 
         const x = this.color
             .copy()
             .rangeRound(
-                d3.quantize(d3.interpolate(this.marginLeft, this.width - this.marginRight), n)
+                d3.quantize(
+                    d3.interpolate(
+                        this.marginLeft,
+                        this.width - this.marginRight
+                    ),
+                    n
+                )
             );
 
         // legend background rectangle
@@ -80,13 +88,18 @@ export class Legend {
             .attr(
                 "xlink:href",
                 ramp(
-                    this.color.copy().domain(d3.quantize(d3.interpolate(0, 1), n))
+                    this.color
+                        .copy()
+                        .domain(d3.quantize(d3.interpolate(0, 1), n))
                 ).toDataURL()
             );
 
         // ticks
         svg.append("g")
-            .attr("transform", `translate(0,${this.height - this.marginBottom})`)
+            .attr(
+                "transform",
+                `translate(0,${this.height - this.marginBottom})`
+            )
             .call(
                 d3
                     .axisBottom(x as any)
@@ -101,11 +114,35 @@ export class Legend {
                 g
                     .append("text")
                     .attr("x", this.marginLeft)
-                    .attr("y", this.marginTop + this.marginBottom - this.height - 6)
+                    .attr(
+                        "y",
+                        this.marginTop + this.marginBottom - this.height - 6
+                    )
                     .attr("fill", "currentColor")
                     .attr("text-anchor", "start")
                     .attr("font-weight", "bold")
                     .text(this.title)
             );
+    }
+
+    public remove() {
+        const legendElem: SVGElement = getDocElem(
+            "legend"
+        ) as any as SVGElement;
+        legendElem.innerHTML = "";
+    }
+
+    public update(
+        minVal: number,
+        maxVal: number,
+        colorFun: (t: number) => string
+    ) {
+        const legendElem: SVGElement = getDocElem(
+            "legend"
+        ) as any as SVGElement;
+        legendElem.innerHTML = "";
+
+        this.color = d3.scaleSequential([minVal, maxVal], colorFun);
+        this.init();
     }
 }

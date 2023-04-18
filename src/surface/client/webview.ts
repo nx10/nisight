@@ -30,7 +30,9 @@ import {
 } from "../webview_message";
 import { Legend } from "./legend";
 
-import { loadScene } from "./surfaceclient";
+import { SerializableViewerState, ViewerClient } from "./viewer_client";
+import { colorInterpolates } from "./d3_color_schemes";
+import { createDocElem, getDocElem } from "./utils";
 
 // TODO: we do not need all of these
 
@@ -56,68 +58,94 @@ provideVSCodeDesignSystem().register(
     vsCodeTextField()
 );
 
-declare global {
-    // eslint-disable-next-line no-var
-    var vscodeApi: WebviewApi<unknown>;
-}
-
 // eslint-disable-next-line no-var
-var vscodeApi = acquireVsCodeApi();
+var vscodeApi = acquireVsCodeApi<SerializableViewerState>();
+// eslint-disable-next-line no-var
+var viewerClient: ViewerClient | undefined = undefined;
 
-function vscPostMessage(message: WebviewFrontendMessage) {
+/*function vscPostMessage(message: WebviewFrontendMessage) {
     return vscodeApi.postMessage(message);
+}*/
+
+/*function updateState(state: ViewerState) {
+    //const meshDropdown: Dropdown = getDocElem("mesh-dropdown");
+    //const mapDropdown: Dropdown = getDocElem("map-dropdown");
+
+
+    mapDropdown.innerHTML = "";
+    message.selectMapEntries.map((e) => {
+        const opt: Option = getDocElem("vscode-option");
+        opt.value = e.value;
+        opt.innerHTML = e.label;
+        mapDropdown.appendChild(opt);
+    });
+
+    meshDropdown.innerHTML = "";
+    message.selectMeshEntries.map((e) => {
+        const opt: Option = getDocElem("vscode-option");
+        opt.value = e.value;
+        opt.innerHTML = e.label;
+        meshDropdown.appendChild(opt);
+    });
+}*/
+
+function onLoad() {
+    const dropdownColor: Dropdown = getDocElem("dropdown-color");
+    dropdownColor.innerHTML = "";
+    Object.keys(colorInterpolates).map((e) => {
+        const opt: Option = createDocElem("vscode-option");
+        opt.value = e;
+        opt.innerHTML = e;
+        dropdownColor.appendChild(opt);
+    });
+    dropdownColor.value = 'Viridis';
+    dropdownColor.onchange = () => {
+        viewerClient?.setModel(undefined, undefined, dropdownColor.value);
+    };
 }
-
-function getDocElem<T extends HTMLElement>(id: string) {
-    return document.getElementById(id) as T;
-}
-
-
 
 function initWebview() {
-    new Legend().init();
+
+    viewerClient = new ViewerClient();
+
+    const oldState = vscodeApi.getState();
+    if (oldState) {
+        console.log("loaded old state");
+        viewerClient.setSerializableState(oldState);
+    }
 
     window.addEventListener("message", (ev: MessageEvent<unknown>) => {
+        if (!viewerClient) {
+            return;
+        }
         const message = ev.data as WebviewBackendMessage;
 
         switch (message.command) {
             case "SET_STATE": {
-                const meshDropdown: Dropdown = getDocElem("mesh-dropdown");
-                const mapDropdown: Dropdown = getDocElem("map-dropdown");
-
-                if (!message.data.mesh) {
-                    return;
-                }
-
-                loadScene(message.data.mesh, message.data.map ?? undefined);
-
-                mapDropdown.innerHTML = "";
-                message.selectMapEntries.map((e) => {
-                    const opt: Option = getDocElem("vscode-option");
-                    opt.value = e.value;
-                    opt.innerHTML = e.label;
-                    mapDropdown.appendChild(opt);
-                });
-
-                meshDropdown.innerHTML = "";
-                message.selectMeshEntries.map((e) => {
-                    const opt: Option = getDocElem("vscode-option");
-                    opt.value = e.value;
-                    opt.innerHTML = e.label;
-                    meshDropdown.appendChild(opt);
-                });
-
+                viewerClient.setModel(
+                    message.data.mesh
+                        ? {
+                              vertices: new Float32Array(
+                                  message.data.mesh.vertices
+                              ),
+                              faces: new Uint32Array(message.data.mesh.faces),
+                          }
+                        : undefined,
+                    message.data.map
+                        ? new Float32Array(message.data.map)
+                        : undefined
+                );
+                vscodeApi.setState(viewerClient.getSerializableState());
                 break;
             }
             default:
                 break;
         }
-
-        vscodeApi.postMessage(message);
     });
 
     window.onload = () => {
-        const meshDropdown: Dropdown = getDocElem("mesh-dropdown");
+        onLoad();
+        /*const meshDropdown: Dropdown = getDocElem("mesh-dropdown");
         const mapDropdown: Dropdown = getDocElem("map-dropdown");
 
         meshDropdown.onchange = () => {
@@ -146,7 +174,7 @@ function initWebview() {
             vscPostMessage({
                 command: "CHOOSE_MAP",
             });
-        };
+        };*/
     };
 }
 

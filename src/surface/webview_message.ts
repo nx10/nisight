@@ -22,8 +22,8 @@ type SelectEntry = {
 export type WebviewBackendMessage = {
     command: "SET_STATE";
     data: {
-        mesh: {vertices: ArrayBufferLike, faces: ArrayBufferLike} | null,
-        map: ArrayBufferLike | null
+        mesh: { vertices: ArrayBufferLike; faces: ArrayBufferLike } | null;
+        map: ArrayBufferLike | null;
     };
     selectMeshEntries: SelectEntry[];
     selectMapEntries: SelectEntry[];

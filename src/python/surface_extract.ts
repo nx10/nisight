@@ -8,6 +8,23 @@ import { getVenvInterpreter } from "../utils/python_environment";
 
 const SHOW_OUTPUT_CONSOLE_ACTION = "Show output console";
 
+
+export async function mapExtract(
+    extensionUri: vscode.Uri,
+    uri: vscode.Uri,
+) {
+    const data = await surfaceExtract(extensionUri, undefined, uri);
+    return data?.map ? data.map : null;
+}
+
+export async function meshExtract(
+    extensionUri: vscode.Uri,
+    uri: vscode.Uri,
+) {
+    const data = await surfaceExtract(extensionUri, uri, undefined);
+    return data?.mesh ? data.mesh : null;
+}
+
 export async function surfaceExtract(
     extensionUri: vscode.Uri,
     fileMesh?: vscode.Uri,
